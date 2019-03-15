@@ -8,33 +8,33 @@ import java.util.stream.Stream;
  * A Frame represents one second's worth of records
  */
 public class Frame {
-    private final List<Record> recordGroup = new LinkedList<>();
-    private long groupStartTime;
+    private final List<Record> records = new LinkedList<>();
+    private long frameStartTime;
 
     public void addRecord(Record record) {
-        recordGroup.add(record);
+        records.add(record);
     }
 
     @Override
     public String toString() {
         return "Frame{" +
-                recordGroup +
+                records +
                 '}';
     }
 
     public boolean isEmpty() {
-        return recordGroup.isEmpty();
+        return records.isEmpty();
     }
 
     public long getStartTime() {
-        return groupStartTime;
+        return frameStartTime;
     }
 
     /**
      * Set the start time (in UTC epoch seconds) of this Frame, ie the time associated with the earliest record in the Frame
      */
-    public void setStartTime(long groupStartTime) {
-        this.groupStartTime = groupStartTime;
+    public void setStartTime(long frameStartTime) {
+        this.frameStartTime = frameStartTime;
     }
 
     /**
@@ -42,7 +42,7 @@ public class Frame {
      * @return a Stream of Record instances representing the records in this Frame
      */
     public Stream<Record> stream() {
-        return recordGroup.stream();
+        return records.stream();
     }
 
     /**
@@ -50,6 +50,6 @@ public class Frame {
      * @return the number records in this Frame
      */
     public int size() {
-        return recordGroup.size();
+        return records.size();
     }
 }

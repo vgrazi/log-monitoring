@@ -32,11 +32,11 @@ public class RecordProcessor {
     // we process things every "1" seconds, beginning from the start time
     // note: if there is no activity withih
     // we assume record times are correct, and in proper sequence.
-    //  However best not to rely on that, so we use the real time for forming the time unit groups
-    public void processRecords(BlockingQueue<Record> recordQueue, TransferQueue<Frame> groupQueue) {
+    //  However best not to rely on that, so we use the real time for forming the time unit Frames
+    public void processRecords(BlockingQueue<Record> recordQueue, TransferQueue<Frame> frameQueue) {
         executor.execute(() -> {
             try {
-                // each frame contains 1 seconds worth of data, starting from the groupStartTime
+                // each frame contains 1 seconds worth of data, starting from the frameStartTime
                 Frame frame = null;
 
                 while (running) {
@@ -52,8 +52,8 @@ public class RecordProcessor {
                         // Queue up the previous frame...
                         if (!frame.isEmpty()) {
                             // if the Frame is empty, don't queue it up, just reuse it. This guarantee that
-                            // only non-empty groups will be processed
-                            groupQueue.put(frame);
+                            // only non-empty Frames will be processed
+                            frameQueue.put(frame);
                             // create the next Frame
                             frame = new Frame();
                         }

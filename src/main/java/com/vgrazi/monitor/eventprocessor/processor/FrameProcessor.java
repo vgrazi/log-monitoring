@@ -24,15 +24,13 @@ public class FrameProcessor {
     private StatsCruncher statsCruncher;
 
     /**
-     * When the RecordProcessor deposits groups of seconds onto the queue, GroupProcessor processes them
+     * When the RecordProcessor deposits Frame of seconds onto the queue, FrameProcessor processes them
      * @param frameQueue a queue of all Frames within the configured frequency
      */
     public void processFrames(BlockingQueue<Frame> frameQueue) {
         executor.submit(()-> {
             try {
                 while (running) {
-                    // note: groups could be empty, indicating the file is not pumping.
-                    // todo: The processor should alert on empty/low volume groups
                     Frame frame = frameQueue.take();
                     processFrame(frame);
                 }

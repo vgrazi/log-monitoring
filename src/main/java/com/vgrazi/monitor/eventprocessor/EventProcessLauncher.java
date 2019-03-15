@@ -32,17 +32,17 @@ public class EventProcessLauncher implements CommandLineRunner {
     public void run(String[] args) {
 /*
           the FileReader parses records into Record instances, then deposits them on the queue.
-          They are picked up by the EventProcessor, which groups them into groups, and deposits them on a queue.
-          They are then processed by the GroupProcessor
+          They are picked up by the EventProcessor, which groups them into Frames, and deposits them on a queue.
+          They are then processed by the FrameProcessor
 */
         TransferQueue<Record> recordQueue = new LinkedTransferQueue<>();
-        TransferQueue<Frame> groupQueue = new LinkedTransferQueue<>();
+        TransferQueue<Frame> frameQueue = new LinkedTransferQueue<>();
         // read lines, add them to the records queue
         fileReader.tailFile(recordQueue);
 
-        recordProcessor.processRecords(recordQueue, groupQueue);
+        recordProcessor.processRecords(recordQueue, frameQueue);
 
-        frameProcessor.processFrames(groupQueue);
+        frameProcessor.processFrames(frameQueue);
 
     }
 
