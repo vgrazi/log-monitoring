@@ -2,6 +2,7 @@ package com.vgrazi.monitor.eventprocessor.processor;
 
 import com.vgrazi.monitor.eventprocessor.domain.Frame;
 import com.vgrazi.monitor.eventprocessor.util.StatsCruncher;
+import com.vgrazi.monitor.eventprocessor.util.WindowUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -9,10 +10,13 @@ import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
+import java.util.Deque;
+import java.util.LinkedList;
 import java.util.Map;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.TransferQueue;
 
 @Service
 public class FrameProcessor {
@@ -24,15 +28,26 @@ public class FrameProcessor {
     private StatsCruncher statsCruncher;
 
     /**
+     * Maintain the window of interest, 10 minutes by default, consisting of all frames within that time period
+     */
+    private final Deque<Frame> window = new LinkedList<>();
+
+    @Autowired
+    private WindowUtils windowUtils;
+
+    /**
      * When the RecordProcessor deposits Frame of seconds onto the queue, FrameProcessor processes them
      * @param frameQueue a queue of all Frames within the configured frequency
+     * @param windowQueue maintains a Window of frames. The Window is the span of time we are interested in.
      */
-    public void processFrames(BlockingQueue<Frame> frameQueue) {
+    public void processFrames(BlockingQueue<Frame> frameQueue, TransferQueue<Deque<Frame>> windowQueue) {
         executor.submit(()-> {
             try {
                 while (running) {
                     Frame frame = frameQueue.take();
                     processFrame(frame);
+                    windowUtils.addFrameToWindow(frame, window);
+                    windowQueue.transfer(window);
                 }
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();

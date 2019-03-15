@@ -29,10 +29,12 @@ public class RecordProcessor {
     @Value("${use-record-times}")
     private boolean useRecordTimes;
 
-    // we process things every "1" seconds, beginning from the start time
-    // note: if there is no activity withih
-    // we assume record times are correct, and in proper sequence.
-    //  However best not to rely on that, so we use the real time for forming the time unit Frames
+    /**
+     * We process incoming records from the recordQueue into one second frames, beginning from the start time, and throw them on the frame queue
+     * we assume record times are correct, and in proper sequence.
+     * However best not to rely on that, so we use the real time for forming the time unit Frames
+     * This is configurable. See documentation in application.properties
+     */
     public void processRecords(BlockingQueue<Record> recordQueue, TransferQueue<Frame> frameQueue) {
         executor.execute(() -> {
             try {
@@ -41,10 +43,10 @@ public class RecordProcessor {
 
                 while (running) {
                     Record record = recordQueue.take();
-                    long recordTime = getRecordTime(record).toEpochSecond(ZoneOffset.UTC);
+                    long recordTime = getRecordTime(record);
                     if(frame == null) {
                         frame = new Frame();
-                        frame.setStartTime(recordTime);
+                        frame.setFrameStartTime(recordTime);
                     }
                     else if (recordTime - frame.getStartTime() > frameResolutionInSeconds) {
                         // Record belongs to the next Frame.
@@ -58,10 +60,11 @@ public class RecordProcessor {
                             frame = new Frame();
                         }
                         // bump the start time for the new Frame
-                        frame.setStartTime(recordTime);
+                        frame.setFrameStartTime(recordTime);
                     }
                     // add the record to the Frame
                     frame.addRecord(record);
+                    frame.setFrameEndTime(recordTime);
                 }
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
@@ -70,18 +73,18 @@ public class RecordProcessor {
     }
 
     /**
-     * Returns the actual record time or the log time depending
+     * Returns the actual record time or the log time (in seconds) depending
      * on whether the use-record-times property is true or false
-     * @param record
-     * @return
      */
-    private LocalDateTime getRecordTime(Record record) {
+    private long getRecordTime(Record record) {
+        LocalDateTime recordTime;
         if(useRecordTimes) {
-            return record.getRecordTime();
+            recordTime = record.getRecordTime();
         }
         else {
-            return record.getActualTime();
+            recordTime = record.getActualTime();
         }
+        return recordTime.toEpochSecond(ZoneOffset.UTC);
     }
 
     /**

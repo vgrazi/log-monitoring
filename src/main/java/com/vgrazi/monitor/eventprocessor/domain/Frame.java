@@ -10,6 +10,7 @@ import java.util.stream.Stream;
 public class Frame {
     private final List<Record> records = new LinkedList<>();
     private long frameStartTime;
+    private long frameEndTime;
 
     public void addRecord(Record record) {
         records.add(record);
@@ -33,8 +34,19 @@ public class Frame {
     /**
      * Set the start time (in UTC epoch seconds) of this Frame, ie the time associated with the earliest record in the Frame
      */
-    public void setStartTime(long frameStartTime) {
+    public void setFrameStartTime(long frameStartTime) {
         this.frameStartTime = frameStartTime;
+    }
+
+    public long getFrameEndTime() {
+        return frameEndTime;
+    }
+
+    /**
+     * Set the start time (in UTC epoch seconds) of this Frame, ie the time associated with the earliest record in the Frame
+     */
+    public void setFrameEndTime(long frameEndTime) {
+        this.frameEndTime = frameEndTime;
     }
 
     /**

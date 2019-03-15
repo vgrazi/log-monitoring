@@ -11,6 +11,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.stereotype.Component;
 
+import java.util.Deque;
 import java.util.concurrent.LinkedTransferQueue;
 import java.util.concurrent.TransferQueue;
 
@@ -37,12 +38,16 @@ public class EventProcessLauncher implements CommandLineRunner {
 */
         TransferQueue<Record> recordQueue = new LinkedTransferQueue<>();
         TransferQueue<Frame> frameQueue = new LinkedTransferQueue<>();
-        // read lines, add them to the records queue
+        TransferQueue<Deque<Frame>> windowQueue = new LinkedTransferQueue<>();
+        // read lines, parse them, and add them to the records queue
         fileReader.tailFile(recordQueue);
 
+        // as records appear, process them, group them into Frames, and deposit the Frames onto the frameQueue
         recordProcessor.processRecords(recordQueue, frameQueue);
 
-        frameProcessor.processFrames(frameQueue);
+        // There is really ever only one window. However when it is changed by the record processor, the window is moved to the transfer queue
+        // so that the window processor is notified to grab it
+        frameProcessor.processFrames(frameQueue, windowQueue);
 
     }
 
