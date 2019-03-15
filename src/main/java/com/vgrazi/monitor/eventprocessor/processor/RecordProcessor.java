@@ -1,7 +1,7 @@
 package com.vgrazi.monitor.eventprocessor.processor;
 
+import com.vgrazi.monitor.eventprocessor.domain.Frame;
 import com.vgrazi.monitor.eventprocessor.domain.Record;
-import com.vgrazi.monitor.eventprocessor.domain.RecordGroup;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -33,35 +33,35 @@ public class RecordProcessor {
     // note: if there is no activity withih
     // we assume record times are correct, and in proper sequence.
     //  However best not to rely on that, so we use the real time for forming the time unit groups
-    public void processRecords(BlockingQueue<Record> recordQueue, TransferQueue<RecordGroup> groupQueue) {
+    public void processRecords(BlockingQueue<Record> recordQueue, TransferQueue<Frame> groupQueue) {
         executor.execute(() -> {
             try {
-                // each group contains 1 seconds worth of data, starting from the groupStartTime
-                RecordGroup recordGroup = null;
+                // each frame contains 1 seconds worth of data, starting from the groupStartTime
+                Frame frame = null;
 
                 while (running) {
                     Record record = recordQueue.take();
                     long recordTime = getRecordTime(record).toEpochSecond(ZoneOffset.UTC);
-                    if(recordGroup == null) {
-                        recordGroup = new RecordGroup();
-                        recordGroup.setStartTime(recordTime);
+                    if(frame == null) {
+                        frame = new Frame();
+                        frame.setStartTime(recordTime);
                     }
-                    else if (recordTime - recordGroup.getStartTime() > frameResolutionInSeconds) {
-                        // Record belongs to the next group.
-                        // Close this group and prepare for processing...
-                        // Queue up the previous group...
-                        if (!recordGroup.isEmpty()) {
-                            // if the group is empty, don't queue it up, just reuse it. This guarantee that
+                    else if (recordTime - frame.getStartTime() > frameResolutionInSeconds) {
+                        // Record belongs to the next Frame.
+                        // Close this Frame and prepare for processing...
+                        // Queue up the previous frame...
+                        if (!frame.isEmpty()) {
+                            // if the Frame is empty, don't queue it up, just reuse it. This guarantee that
                             // only non-empty groups will be processed
-                            groupQueue.put(recordGroup);
-                            // create the new group
-                            recordGroup = new RecordGroup();
+                            groupQueue.put(frame);
+                            // create the next Frame
+                            frame = new Frame();
                         }
-                        // bump the start time for the new group
-                        recordGroup.setStartTime(recordTime);
+                        // bump the start time for the new Frame
+                        frame.setStartTime(recordTime);
                     }
-                    // add the record to the group
-                    recordGroup.addRecord(record);
+                    // add the record to the Frame
+                    frame.addRecord(record);
                 }
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();

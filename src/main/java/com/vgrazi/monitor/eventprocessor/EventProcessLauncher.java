@@ -1,9 +1,9 @@
 package com.vgrazi.monitor.eventprocessor;
 
+import com.vgrazi.monitor.eventprocessor.domain.Frame;
 import com.vgrazi.monitor.eventprocessor.domain.Record;
-import com.vgrazi.monitor.eventprocessor.domain.RecordGroup;
 import com.vgrazi.monitor.eventprocessor.processor.FileReader;
-import com.vgrazi.monitor.eventprocessor.processor.GroupProcessor;
+import com.vgrazi.monitor.eventprocessor.processor.FrameProcessor;
 import com.vgrazi.monitor.eventprocessor.processor.RecordProcessor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -11,8 +11,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.stereotype.Component;
 
-import java.io.FileNotFoundException;
-import java.util.List;
 import java.util.concurrent.LinkedTransferQueue;
 import java.util.concurrent.TransferQueue;
 
@@ -27,7 +25,7 @@ public class EventProcessLauncher implements CommandLineRunner {
     private RecordProcessor recordProcessor;
 
     @Autowired
-    private GroupProcessor groupProcessor;
+    private FrameProcessor groupProcessor;
 
 
     @Override
@@ -38,13 +36,13 @@ public class EventProcessLauncher implements CommandLineRunner {
           They are then processed by the GroupProcessor
 */
         TransferQueue<Record> recordQueue = new LinkedTransferQueue<>();
-        TransferQueue<RecordGroup> groupQueue = new LinkedTransferQueue<>();
+        TransferQueue<Frame> groupQueue = new LinkedTransferQueue<>();
         // read lines, add them to the records queue
         fileReader.tailFile(recordQueue);
 
         recordProcessor.processRecords(recordQueue, groupQueue);
 
-        groupProcessor.processGroups(groupQueue);
+        groupProcessor.processFrames(groupQueue);
 
     }
 

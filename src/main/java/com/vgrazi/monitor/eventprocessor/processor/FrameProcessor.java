@@ -1,7 +1,7 @@
 package com.vgrazi.monitor.eventprocessor.processor;
 
-import com.vgrazi.monitor.eventprocessor.domain.RecordGroup;
-import com.vgrazi.monitor.eventprocessor.util.GroupStatsCruncher;
+import com.vgrazi.monitor.eventprocessor.domain.Frame;
+import com.vgrazi.monitor.eventprocessor.util.StatsCruncher;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -15,26 +15,26 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 @Service
-public class GroupProcessor {
+public class FrameProcessor {
     private final ExecutorService executor = Executors.newSingleThreadExecutor();
-    Logger logger = LoggerFactory.getLogger(GroupProcessor.class);
+    Logger logger = LoggerFactory.getLogger(FrameProcessor.class);
     private volatile boolean running = true;
 
     @Autowired
-    private GroupStatsCruncher groupStatsCruncher;
+    private StatsCruncher statsCruncher;
 
     /**
      * When the RecordProcessor deposits groups of seconds onto the queue, GroupProcessor processes them
-     * @param groupQueue a group of all records within the configured frequency
+     * @param frameQueue a queue of all Frames within the configured frequency
      */
-    public void processGroups(BlockingQueue<RecordGroup> groupQueue) {
+    public void processFrames(BlockingQueue<Frame> frameQueue) {
         executor.submit(()-> {
             try {
                 while (running) {
                     // note: groups could be empty, indicating the file is not pumping.
                     // todo: The processor should alert on empty/low volume groups
-                    RecordGroup group = groupQueue.take();
-                    processGroup(group);
+                    Frame frame = frameQueue.take();
+                    processFrame(frame);
                 }
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
@@ -42,17 +42,17 @@ public class GroupProcessor {
         });
     }
 
-    private void processGroup(RecordGroup group) {
-        logger.debug("Processing group {}", group);
-        calculateStats(group);
+    private void processFrame(Frame frame) {
+        logger.debug("Processing frame {}", frame);
+        calculateStats(frame);
     }
 
-    private void calculateStats(RecordGroup group) {
+    private void calculateStats(Frame frame) {
 
-        int recordsPerSecond = groupStatsCruncher.getRecordsPerSecond(group);
-        long startTime = group.getStartTime();
-        Map<String, Long> failedResponses = groupStatsCruncher.getSectionFailedResponses(group);
-        Map<String, Long> hitCounts = groupStatsCruncher.getSectionHitCounts(group);Map.Entry<String, Long> max = groupStatsCruncher.getMaxCountKey(hitCounts);
+        int recordsPerSecond = statsCruncher.getRecordsPerSecond(frame);
+        long startTime = frame.getStartTime();
+        Map<String, Long> failedResponses = statsCruncher.getSectionFailedResponses(frame);
+        Map<String, Long> hitCounts = statsCruncher.getSectionHitCounts(frame);Map.Entry<String, Long> max = statsCruncher.getMaxCountKey(hitCounts);
         logger.debug("recordsPerSecond: {}", recordsPerSecond);
         logger.debug("startTime: {}", LocalDateTime.ofEpochSecond(startTime, 0, ZoneOffset.UTC));
         logger.debug("Hit counts:{}", hitCounts);
@@ -73,12 +73,6 @@ public class GroupProcessor {
         //  Seconds (eg when traffic exceeds 10 hits avg per second):
         //  Minutes (eg when traffic exceeds 10 hits avg per second for 2 minutes):
         //  to accomplish this, we can keep a LinkedHashMap of seconds to hits per second
-
-        // I AM THINKING THE GROUP IDEA IS NOT VERY GOOD. THERE COULD BE STATS WE MISS, FOR EXAMPLE IF IN 1 SEC
-        // WE GOT 6 HITS PER SECOND AT THE END OF THE SECOND, AND THEN IN THE NEXT SECOND WE GOT 6 HITS IN THE BEGINNING
-        // WE WOULD MISS THAT
-        // RATHER, WE NEED TO KEEP A ROLLING COUNT.
-
     }
 
     /**
