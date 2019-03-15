@@ -29,7 +29,6 @@ public class RecordGroup {
 
     /**
      * Set the start time (in UTC epoch seconds) of this group, ie the time associated with the earliest record in the group
-     * @param groupStartTime
      */
     public void setStartTime(long groupStartTime) {
         this.groupStartTime = groupStartTime;

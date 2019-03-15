@@ -11,14 +11,8 @@ public class AppProperties {
     // File name won't be changed without a restart. Todo: But if this is a requirement, implement it
     @Value("${filename}")
     private String fileName;
-    @Value("${poll-frequency-sec}")
-    private int pollFrequencySeconds;
 
     public String getFileName() {
         return fileName;
-    }
-
-    public int getPollFrequencySeconds() {
-        return pollFrequencySeconds;
     }
 }

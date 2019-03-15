@@ -52,8 +52,7 @@ public class GroupProcessor {
         int recordsPerSecond = groupStatsCruncher.getRecordsPerSecond(group);
         long startTime = group.getStartTime();
         Map<String, Long> failedResponses = groupStatsCruncher.getSectionFailedResponses(group);
-        Map<String, Long> hitCounts = groupStatsCruncher.getSectionHitCounts(group);
-        Map.Entry<String, Long> max = groupStatsCruncher.getMaxCountKey(hitCounts);
+        Map<String, Long> hitCounts = groupStatsCruncher.getSectionHitCounts(group);Map.Entry<String, Long> max = groupStatsCruncher.getMaxCountKey(hitCounts);
         logger.debug("recordsPerSecond: {}", recordsPerSecond);
         logger.debug("startTime: {}", LocalDateTime.ofEpochSecond(startTime, 0, ZoneOffset.UTC));
         logger.debug("Hit counts:{}", hitCounts);

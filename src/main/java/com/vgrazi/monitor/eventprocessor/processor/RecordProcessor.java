@@ -26,6 +26,9 @@ public class RecordProcessor {
     @Value("${frame-resolution-sec}")
     private long frameResolutionInSeconds;
 
+    @Value("${use-record-times}")
+    private boolean useRecordTimes;
+
     // we process things every "1" seconds, beginning from the start time
     // note: if there is no activity withih
     // we assume record times are correct, and in proper sequence.
@@ -34,14 +37,16 @@ public class RecordProcessor {
         executor.execute(() -> {
             try {
                 // each group contains 1 seconds worth of data, starting from the groupStartTime
-                long groupStartTime = LocalDateTime.now().toEpochSecond(ZoneOffset.UTC);
-                RecordGroup recordGroup = new RecordGroup();
-                recordGroup.setStartTime(groupStartTime);
+                RecordGroup recordGroup = null;
 
                 while (running) {
                     Record record = recordQueue.take();
-                    long recordActualTime = record.getActualTime().toEpochSecond(ZoneOffset.UTC);
-                    if (recordActualTime - recordGroup.getStartTime() > frameResolutionInSeconds) {
+                    long recordTime = getRecordTime(record).toEpochSecond(ZoneOffset.UTC);
+                    if(recordGroup == null) {
+                        recordGroup = new RecordGroup();
+                        recordGroup.setStartTime(recordTime);
+                    }
+                    else if (recordTime - recordGroup.getStartTime() > frameResolutionInSeconds) {
                         // Record belongs to the next group.
                         // Close this group and prepare for processing...
                         // Queue up the previous group...
@@ -53,7 +58,7 @@ public class RecordProcessor {
                             recordGroup = new RecordGroup();
                         }
                         // bump the start time for the new group
-                        recordGroup.setStartTime(recordActualTime);
+                        recordGroup.setStartTime(recordTime);
                     }
                     // add the record to the group
                     recordGroup.addRecord(record);
@@ -62,6 +67,21 @@ public class RecordProcessor {
                 Thread.currentThread().interrupt();
             }
         });
+    }
+
+    /**
+     * Returns the actual record time or the log time depending
+     * on whether the use-record-times property is true or false
+     * @param record
+     * @return
+     */
+    private LocalDateTime getRecordTime(Record record) {
+        if(useRecordTimes) {
+            return record.getRecordTime();
+        }
+        else {
+            return record.getActualTime();
+        }
     }
 
     /**

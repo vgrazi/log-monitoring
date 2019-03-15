@@ -5,6 +5,7 @@ import com.vgrazi.monitor.eventprocessor.domain.Record;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.ApplicationContext;
 import org.springframework.stereotype.Component;
 
@@ -21,6 +22,8 @@ public class FileReader {
     Logger logger = LoggerFactory.getLogger(FileReader.class);
     private volatile boolean running = true;
     private final ExecutorService executor = Executors.newSingleThreadExecutor();
+    @Value("${tail-from-end}")
+    private boolean tailFromEnd;
 
     /**
      * Tails the file, depositing parsed records on the queue for asynchronous processing
@@ -36,9 +39,14 @@ public class FileReader {
 
         executor.submit(() -> {
             try (RandomAccessFile file = new RandomAccessFile(fileName, "r")) {
-                long eofPos = file.length() - 100;
-                // Skip the old news, and just start from the end of the file
-                file.seek(eofPos);
+                if (tailFromEnd) {
+                    // start a few bytes earlier
+                    long eofPos = file.length() - 100;
+                    if(eofPos > 0) {
+                        // Skip the old news, and just start from the end of the file
+                        file.seek(eofPos);
+                    }
+                }
                 boolean first = true;
                 CharBuffer buffer = null;
                 while (running) {
