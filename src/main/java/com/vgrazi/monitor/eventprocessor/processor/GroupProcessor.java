@@ -1,12 +1,15 @@
 package com.vgrazi.monitor.eventprocessor.processor;
 
-import com.vgrazi.monitor.eventprocessor.domain.Record;
 import com.vgrazi.monitor.eventprocessor.domain.RecordGroup;
+import com.vgrazi.monitor.eventprocessor.util.GroupStatsCruncher;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import java.util.List;
+import java.time.LocalDateTime;
+import java.time.ZoneOffset;
+import java.util.Map;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -17,8 +20,11 @@ public class GroupProcessor {
     Logger logger = LoggerFactory.getLogger(GroupProcessor.class);
     private volatile boolean running = true;
 
+    @Autowired
+    private GroupStatsCruncher groupStatsCruncher;
+
     /**
-     * When the RecordProcessor deposits groups onto the queue, GroupProcessor processes them
+     * When the RecordProcessor deposits groups of seconds onto the queue, GroupProcessor processes them
      * @param groupQueue a group of all records within the configured frequency
      */
     public void processGroups(BlockingQueue<RecordGroup> groupQueue) {
@@ -42,6 +48,17 @@ public class GroupProcessor {
     }
 
     private void calculateStats(RecordGroup group) {
+
+        int recordsPerSecond = groupStatsCruncher.getRecordsPerSecond(group);
+        long startTime = group.getStartTime();
+        Map<String, Long> failedResponses = groupStatsCruncher.getSectionFailedResponses(group);
+        Map<String, Long> hitCounts = groupStatsCruncher.getSectionHitCounts(group);
+        Map.Entry<String, Long> max = groupStatsCruncher.getMaxCountKey(hitCounts);
+        logger.debug("recordsPerSecond: {}", recordsPerSecond);
+        logger.debug("startTime: {}", LocalDateTime.ofEpochSecond(startTime, 0, ZoneOffset.UTC));
+        logger.debug("Hit counts:{}", hitCounts);
+        logger.debug("Failed responses:{}", failedResponses);
+        logger.debug("Max:{}", max);
         // Required:
         // Sections of the site with most hits
         // Sections of the site with least hits

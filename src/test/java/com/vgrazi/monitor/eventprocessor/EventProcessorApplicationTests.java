@@ -6,11 +6,13 @@ import org.slf4j.LoggerFactory;
 import java.io.*;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.Random;
 
 public class EventProcessorApplicationTests {
     private Logger logger = LoggerFactory.getLogger(EventProcessorApplicationTests.class);
     private volatile boolean running = true;
     private final DateTimeFormatter formatter =DateTimeFormatter.ofPattern("dd/MMM/yyyy:HH:mm:ss +SSSS");
+    private Random random = new Random(0);
 
     public static void main(String[] args) throws IOException {
         new EventProcessorApplicationTests().contextLoads();
@@ -53,7 +55,8 @@ public class EventProcessorApplicationTests {
             writer.write('\n');
             writer.flush();
             logger.debug("writing: {}{}{})", prefix, format, suffix);
-            Thread.sleep(500);
+
+            Thread.sleep(100+random.nextInt(401));
         } catch (IOException e) {
             throw new UncheckedIOException(e);
         } catch (InterruptedException e) {

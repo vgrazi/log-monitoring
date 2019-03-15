@@ -9,8 +9,6 @@ import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
-import java.util.LinkedList;
-import java.util.List;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -24,33 +22,41 @@ public class RecordProcessor {
 
     @Value("${poll-frequency-sec}")
     private long pollFrequencySeconds;
-    // we process things every "10" seconds, beginning from the start time
-    // todo: we assume record times are correct, and in proper sequence.
-    //  However best not to rely on that, we will use the real time for forming the time unit groups
 
+    @Value("${frame-resolution-sec}")
+    private long frameResolutionInSeconds;
+
+    // we process things every "1" seconds, beginning from the start time
+    // note: if there is no activity withih
+    // we assume record times are correct, and in proper sequence.
+    //  However best not to rely on that, so we use the real time for forming the time unit groups
     public void processRecords(BlockingQueue<Record> recordQueue, TransferQueue<RecordGroup> groupQueue) {
         executor.execute(() -> {
             try {
-                // each group contains 10 seconds worth of data, starting from the groupStartTime
+                // each group contains 1 seconds worth of data, starting from the groupStartTime
                 long groupStartTime = LocalDateTime.now().toEpochSecond(ZoneOffset.UTC);
                 RecordGroup recordGroup = new RecordGroup();
+                recordGroup.setStartTime(groupStartTime);
 
                 while (running) {
                     Record record = recordQueue.take();
                     long recordActualTime = record.getActualTime().toEpochSecond(ZoneOffset.UTC);
-                    if (recordActualTime - groupStartTime > pollFrequencySeconds) {
+                    if (recordActualTime - recordGroup.getStartTime() > frameResolutionInSeconds) {
                         // Record belongs to the next group.
                         // Close this group and prepare for processing...
                         // Queue up the previous group...
-                        groupQueue.put(recordGroup);
+                        if (!recordGroup.isEmpty()) {
+                            // if the group is empty, don't queue it up, just reuse it. This guarantee that
+                            // only non-empty groups will be processed
+                            groupQueue.put(recordGroup);
+                            // create the new group
+                            recordGroup = new RecordGroup();
+                        }
                         // bump the start time for the new group
-                        groupStartTime = recordActualTime;
-                        // create the new group
-                        recordGroup = new RecordGroup();
+                        recordGroup.setStartTime(recordActualTime);
                     }
                     // add the record to the group
                     recordGroup.addRecord(record);
-                    logger.debug("Size:{} {}", recordQueue.size(), record.toString());
                 }
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
