@@ -25,7 +25,7 @@ public class EventProcessLauncher implements CommandLineRunner {
     private RecordProcessor recordProcessor;
 
     @Autowired
-    private FrameProcessor groupProcessor;
+    private FrameProcessor frameProcessor;
 
 
     @Override
@@ -42,7 +42,7 @@ public class EventProcessLauncher implements CommandLineRunner {
 
         recordProcessor.processRecords(recordQueue, groupQueue);
 
-        groupProcessor.processFrames(groupQueue);
+        frameProcessor.processFrames(groupQueue);
 
     }
 
