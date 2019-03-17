@@ -31,7 +31,7 @@ public class MonitorUI implements CommandLineRunner {
     private void watchForFiles() throws IOException {
         Path dir = Paths.get(scorecardDir);
         WatchService watchService = FileSystems.getDefault().newWatchService();
-        WatchKey watchKey = dir.register(watchService, StandardWatchEventKinds.ENTRY_CREATE);
+        WatchKey watchKey = dir.register(watchService, StandardWatchEventKinds.ENTRY_MODIFY);
         while (running) {
             watchKey.pollEvents().forEach(event->
                     {
