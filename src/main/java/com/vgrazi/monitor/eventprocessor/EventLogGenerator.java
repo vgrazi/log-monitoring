@@ -3,6 +3,7 @@ package com.vgrazi.monitor.eventprocessor;
 import com.vgrazi.monitor.eventprocessor.util.IOUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.stereotype.Component;
 
@@ -21,6 +22,9 @@ public class EventLogGenerator implements CommandLineRunner {
     private Random random = new Random(0);
     private final ExecutorService executor = Executors.newSingleThreadExecutor();
 
+    @Value("${input-filename}")
+    private String logFile;
+
     @Override
     public void run(String... args) {
         executor.submit(()-> {
@@ -29,7 +33,7 @@ public class EventLogGenerator implements CommandLineRunner {
         });
     }
     private void contextLoads() throws IOException {
-        File file = new File("log/access.log");
+        File file = new File(logFile);
         IOUtils.createDirectoryTree(file);
         try (BufferedWriter writer = new BufferedWriter(new FileWriter(file))) {
             while (running) {
