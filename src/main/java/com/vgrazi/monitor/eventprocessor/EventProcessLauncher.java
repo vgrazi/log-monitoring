@@ -34,11 +34,10 @@ public class EventProcessLauncher implements CommandLineRunner {
 
     @Override
     public void run(String[] args) {
-/*
-          the FileReader parses records into Record instances, then deposits them on the queue.
-          They are picked up by the EventProcessor, which groups them into Frames, and deposits them on a queue.
-          They are then processed by the FrameProcessor
-*/
+
+        // The FileReader parses records into Record instances, then deposits them on the queue.
+        // They are picked up by the EventProcessor, which groups them into Frames, and deposits them on a queue.
+        // They are then processed by the FrameProcessor
         TransferQueue<Record> recordQueue = new LinkedTransferQueue<>();
         TransferQueue<Frame> frameQueue = new LinkedTransferQueue<>();
         TransferQueue<Scorecard> scorecardQueue = new LinkedTransferQueue<>();
