@@ -64,4 +64,8 @@ public class Frame {
     public int getHitCount() {
         return records.size();
     }
+
+    public List<Record> getRecords() {
+        return records;
+    }
 }

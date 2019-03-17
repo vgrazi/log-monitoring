@@ -38,6 +38,10 @@ public class EventLogGenerator implements CommandLineRunner {
         try (BufferedWriter writer = new BufferedWriter(new FileWriter(file))) {
             while (running) {
                 append(writer, "127.0.0.1 - james [" ,"] \"GET /report HTTP/1.0\" 200 123");
+                append(writer, "127.0.0.1 - jill [" ,"] \"GET /report/access HTTP/1.0\" 200 123");
+                append(writer, "127.0.0.1 - henry [" ,"] \"GET /stats/ HTTP/1.0\" 200 123");
+                append(writer, "127.0.0.1 - mike [" ,"] \"GET /stats/1 HTTP/1.0\" 200 123");
+                append(writer, "127.0.0.1 - helen [" ,"] \"GET /health HTTP/1.0\" 200 123");
                 append(writer, "127.0.0.1 - jill [",  "] \"GET /api/user HTTP/1.0\" 200 234");
                 append(writer, "127.0.0.1 - frank [", "] \"POST /api/user HTTP/1.0\" 200 34");
                 append(writer, "127.0.0.1 - mary [",  "] \"POST /api/user HTTP/1.0\" 503 12");
@@ -59,7 +63,7 @@ public class EventLogGenerator implements CommandLineRunner {
             writer.flush();
             logger.debug("writing: {}{}{})", prefix, format, suffix);
 
-            Thread.sleep(100+random.nextInt(401));
+            Thread.sleep(10+random.nextInt(401));
         } catch (IOException e) {
             throw new UncheckedIOException(e);
         } catch (InterruptedException e) {

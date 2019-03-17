@@ -1,14 +1,20 @@
 package com.vgrazi.monitor.eventprocessor.domain;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import jdk.nashorn.internal.ir.annotations.Ignore;
 
 import java.util.List;
+import java.util.Map;
 
 public class Scorecard {
     @JsonProperty("hitCounts")
     private List<String> hitCounts;
     @JsonProperty("startTime")
     private long startTime;
+    @JsonProperty("hitsReport")
+    private Map<String, Long> hitsReport;
+    @JsonProperty("time-of-threshold-exceeded-alert-secs")
+    private long lastTimeOfThresholdExceededAlertSecs;
 
     public void setHitCounts(List<String> hitCounts) {
 
@@ -27,11 +33,33 @@ public class Scorecard {
         return startTime;
     }
 
+    public Map<String, Long> getHitsReport() {
+        return hitsReport;
+    }
+
+    public void setHitsReport(Map<String, Long> hitsReport) {
+        this.hitsReport = hitsReport;
+    }
+
     @Override
     public String toString() {
         return "Scorecard{" +
                 "hitCounts=" + hitCounts +
                 ", startTime=" + startTime +
                 '}';
+    }
+
+    @Ignore
+    public long getLastTimeOfThresholdExceededAlertSecs() {
+        return lastTimeOfThresholdExceededAlertSecs;
+    }
+
+    /**
+     * Sets the most recent time (in seconds) that the threshold (10 hits per sec) was exceeded on average for last 2 minutes
+     */
+    @Ignore
+    public void setLastTimeOfThresholdExceededAlertSecs(long lastTimeOfThresholdExceededAlertSecs) {
+
+        this.lastTimeOfThresholdExceededAlertSecs = lastTimeOfThresholdExceededAlertSecs;
     }
 }
