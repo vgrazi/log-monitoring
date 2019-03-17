@@ -3,20 +3,30 @@ package com.vgrazi.monitor.eventprocessor;
 import com.vgrazi.monitor.eventprocessor.util.IOUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.boot.CommandLineRunner;
+import org.springframework.stereotype.Component;
 
 import java.io.*;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.Random;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
-public class EventProcessorApplicationTests {
-    private final Logger logger = LoggerFactory.getLogger(EventProcessorApplicationTests.class);
+@Component
+public class EventLogGenerator implements CommandLineRunner {
+    private final Logger logger = LoggerFactory.getLogger(EventLogGenerator.class);
     private volatile boolean running = true;
     private final DateTimeFormatter formatter =DateTimeFormatter.ofPattern("dd/MMM/yyyy:HH:mm:ss +SSSS");
     private Random random = new Random(0);
+    private final ExecutorService executor = Executors.newSingleThreadExecutor();
 
-    public static void main(String[] args) throws IOException {
-        new EventProcessorApplicationTests().contextLoads();
+    @Override
+    public void run(String... args) {
+        executor.submit(()-> {
+            contextLoads();
+            return null;
+        });
     }
     private void contextLoads() throws IOException {
         File file = new File("log/access.log");
@@ -56,5 +66,4 @@ public class EventProcessorApplicationTests {
     public void stop() {
         running = false;
     }
-
 }

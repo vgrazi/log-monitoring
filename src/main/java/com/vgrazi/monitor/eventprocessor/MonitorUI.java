@@ -91,9 +91,10 @@ public class MonitorUI implements CommandLineRunner {
                 protected void paintComponent(Graphics graphics) {
                     super.paintComponent(graphics);
                     graphics.setColor(Color.red);
+                    int howManyTicksFitOnScreen = screenWidth / 10;
                     int start = 0;
-                    if(screenWidth < 10*secs.length) {
-                        start = (10 * secs.length - screenWidth)/10 + 4;
+                    if(secs.length >= howManyTicksFitOnScreen) {
+                        start = secs.length - howManyTicksFitOnScreen + 1;
                         if(start < 0) {
                             start = 0;
                         }
