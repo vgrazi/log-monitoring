@@ -13,21 +13,15 @@ public class IOUtils {
     private final static Logger logger = LoggerFactory.getLogger(IOUtils.class);
 
     /**
-     * Creates the directory tree if required, and then the file, if required
-     * @throws IOException
+     * Creates the directory tree if required
      */
-    public static void createDirectoryTree(File file) throws IOException {
-        File parentDir = file.getParentFile();
+    public static void createDirectoryTree(File parentDir) {
         if(!parentDir.exists()) {
             boolean mkdirs = parentDir.mkdirs();
             if(mkdirs) {
                 logger.info("Created directory {}", parentDir);
             }
         }
-        if(!file.exists()) {
-            file.createNewFile();
-        }
-
     }
 
     public static Scorecard readScorecardFile(Path scorecardFile) throws IOException {

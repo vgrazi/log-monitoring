@@ -11,6 +11,9 @@ import org.springframework.stereotype.Service;
 import javax.annotation.PostConstruct;
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.concurrent.BlockingQueue;
@@ -54,9 +57,13 @@ public class ScorecardProcessor {
         ObjectMapper mapper = new ObjectMapper();
         String format = FORMATTER.format(LocalDateTime.now());
         String filename = String.format(scorecardFileFormat, format);
+        // Create a temp file and rename, so that the file watcher
+        // only gets one modify signal
+        Path tempFile = Files.createTempFile("tmp", "tmp");
+        mapper.writeValue(tempFile.toFile(), scorecard);
+        Path target = Paths.get(filename);
         File file = new File(filename);
-        IOUtils.createDirectoryTree(file);
-        mapper.writeValue(file, scorecard);
+        Files.move(tempFile, target);
         logger.debug("wrote file: {}", file);
     }
 

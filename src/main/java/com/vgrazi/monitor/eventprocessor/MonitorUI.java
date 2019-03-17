@@ -12,14 +12,16 @@ import javax.swing.*;
 import java.awt.*;
 import java.io.IOException;
 import java.nio.file.*;
-import java.util.*;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 @Component
 public class MonitorUI implements CommandLineRunner {
 
-    private JFrame  frame = new JFrame();
+    private static final Object MUTEX = new Object();
+    private JFrame frame = new JFrame();
     @Value("${scorecard-directory}")
     private String scorecardDir;
     private volatile boolean running = true;
@@ -41,27 +43,36 @@ public class MonitorUI implements CommandLineRunner {
     private void watchForFiles() throws IOException {
         Path dir = Paths.get(scorecardDir);
         WatchService watchService = FileSystems.getDefault().newWatchService();
-        WatchKey watchKey = dir.register(watchService, StandardWatchEventKinds.ENTRY_MODIFY);
+        WatchKey watchKey = dir.register(watchService, StandardWatchEventKinds.ENTRY_CREATE);
         while (running) {
-            watchKey.pollEvents().forEach(event->
-                    {
-                        Path path = (Path) event.context();
-                        try {
-                            Path scorecardFile = Paths.get(scorecardDir, path.getFileName().toString());
-                            // give the file a chance to flush!
-                            Thread.sleep(50);
-                            Scorecard scorecard = IOUtils.readScorecardFile(scorecardFile);
-                            JPanel panel = displayScorecard(scorecard);
-                            frame.getContentPane().remove(0);
-                            frame.getContentPane().add(panel);
-                            frame.getContentPane().validate();
+            watchKey.pollEvents().forEach(event ->
+            {
+                Path path = (Path) event.context();
+//                System.out.printf(" Path: %s %d %s", path, event.count(), event.kind());
+                try {
+                    Path scorecardFile = Paths.get(scorecardDir, path.getFileName().toString());
+                    // give the file a chance to flush!
+                    Thread.sleep(50);
+                    Scorecard scorecard = IOUtils.readScorecardFile(scorecardFile);
+                    Files.delete(scorecardFile);
+                    JPanel panel = displayScorecard(scorecard);
+                    frame.getContentPane().remove(0);
+                    frame.getContentPane().add(panel);
+                    frame.getContentPane().validate();
 
-                        } catch (IOException e) {
-                            e.printStackTrace();
-                        } catch (InterruptedException e) {
-                            Thread.currentThread().interrupt();
-                        }
-                    });
+                } catch (IOException e) {
+                    e.printStackTrace();
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                }
+            });
+            synchronized (MUTEX) {
+                try {
+                    MUTEX.wait(50);
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                }
+            }
         }
     }
 
@@ -69,7 +80,7 @@ public class MonitorUI implements CommandLineRunner {
         frame.setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
         Toolkit toolkit = Toolkit.getDefaultToolkit();
         Dimension screenSize = toolkit.getScreenSize();
-        frame.setBounds(screenSize.width/8,screenSize.height/16, screenSize.width/2, 7 * screenSize.height/8);
+        frame.setBounds(screenSize.width / 8, screenSize.height / 16, screenSize.width / 2, 7 * screenSize.height / 8);
         frame.setVisible(true);
         return frame;
     }
@@ -85,16 +96,16 @@ public class MonitorUI implements CommandLineRunner {
         Map<String, Long> hitsReport = scorecard.getHitsReport();
         LinkedHashMap<String, Long> hitsReportSorted = StatsCruncher.sortByValueReverseOrder(hitsReport);
 
-        if(!secsToHits.isEmpty()) {
+        if (!secsToHits.isEmpty()) {
             long min = secsToHits.get(0).secs;
-            long max = secsToHits.get(secsToHits.size()-1).secs;
+            long max = secsToHits.get(secsToHits.size() - 1).secs;
             long count = max - min + 1;
 
             int[] secs = new int[(int) count];
-            for(int i = 0, j=0; i < count ; i++) {
+            for (int i = 0, j = 0; i < count; i++) {
                 SecsToHits secsHits = secsToHits.get(j);
                 long recordSecs = secsHits.secs;
-                if(recordSecs == min + i) {
+                if (recordSecs == min + i) {
                     secs[i] = secsHits.hits;
                     j++;
                 }
@@ -129,6 +140,7 @@ public class MonitorUI implements CommandLineRunner {
 
         private final long secs;
         private final int hits;
+
         private SecsToHits(String secsToHits) {
             String[] split = secsToHits.split(":");
             secs = Integer.parseInt(split[0]);
@@ -138,5 +150,8 @@ public class MonitorUI implements CommandLineRunner {
 
     public void stop() {
         running = false;
+        synchronized (MUTEX) {
+            MUTEX.notify();
+        }
     }
 }

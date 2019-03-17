@@ -7,12 +7,15 @@ import com.vgrazi.monitor.eventprocessor.processor.FileReader;
 import com.vgrazi.monitor.eventprocessor.processor.FrameProcessor;
 import com.vgrazi.monitor.eventprocessor.processor.RecordProcessor;
 import com.vgrazi.monitor.eventprocessor.processor.ScorecardProcessor;
+import com.vgrazi.monitor.eventprocessor.util.IOUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.stereotype.Component;
 
+import java.io.File;
 import java.util.concurrent.LinkedTransferQueue;
 import java.util.concurrent.TransferQueue;
 
@@ -32,9 +35,12 @@ public class EventProcessLauncher implements CommandLineRunner {
     @Autowired
     private ScorecardProcessor scorecardProcessor;
 
+    @Value("${scorecard-directory}")
+    private String outputDir;
+
     @Override
     public void run(String[] args) {
-
+        IOUtils.createDirectoryTree(new File(outputDir));
         // The FileReader parses records into Record instances, then deposits them on the queue.
         // They are picked up by the EventProcessor, which groups them into Frames, and deposits them on a queue.
         // They are then processed by the FrameProcessor
