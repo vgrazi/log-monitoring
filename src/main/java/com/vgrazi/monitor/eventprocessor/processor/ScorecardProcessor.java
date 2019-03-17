@@ -2,7 +2,6 @@ package com.vgrazi.monitor.eventprocessor.processor;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.vgrazi.monitor.eventprocessor.domain.Scorecard;
-import com.vgrazi.monitor.eventprocessor.util.IOUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -39,14 +38,9 @@ public class ScorecardProcessor {
 
     public void processScorecard(BlockingQueue<Scorecard> scorecardQueue) {
         executor.submit(()-> {
-            try {
-                while (running) {
-                    Scorecard scorecard = scorecardQueue.take();
-                    serializeScorecard(scorecard);
-                    // todo: erase anything older than the window duration (10 minutes)
-                }
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
+            while (running) {
+                Scorecard scorecard = scorecardQueue.take();
+                serializeScorecard(scorecard);
             }
             logger.info("ScorecardProcessor exiting");
             return null;
