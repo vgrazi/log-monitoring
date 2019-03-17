@@ -1,8 +1,7 @@
-
 /.idea/
 /mvnw.cmd
 /mvnw
 /target/
 /event-processor.iml
 /HELP.md
-event-processor.iml
+/tmp/
