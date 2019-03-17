@@ -5,6 +5,8 @@ import java.util.Map;
 public class State {
     private long lastStatsReportTime;
     private Map<String, Long> hitsReport;
+    private boolean inHighActivity;
+    private long firstTimeOfThresholdExceededSecs;
 
     public void setLastStatsReportTime(long lastStatsReportTime) {
         this.lastStatsReportTime = lastStatsReportTime;
@@ -24,5 +26,21 @@ public class State {
 
     public Map<String, Long> getHitsReport() {
         return hitsReport;
+    }
+
+    public boolean isInHighActivity() {
+        return inHighActivity;
+    }
+
+    public void setInHighActivity(boolean inHighActivity) {
+        this.inHighActivity = inHighActivity;
+    }
+
+    public long getFirstTimeOfThresholdExceededSecs() {
+        return firstTimeOfThresholdExceededSecs;
+    }
+
+    public void setFirstTimeOfThresholdExceededSecs(long firstTimeOfThresholdExceededSecs) {
+        this.firstTimeOfThresholdExceededSecs = firstTimeOfThresholdExceededSecs;
     }
 }

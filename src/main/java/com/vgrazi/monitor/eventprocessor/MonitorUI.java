@@ -123,7 +123,7 @@ public class MonitorUI implements CommandLineRunner {
                     graphics.setColor(Color.WHITE);
                     graphics.fillRect(0, 0, screenWidth, screenHeight);
 
-                    int howManyTicksFitOnScreen = screenWidth / 10;
+                    int howManyTicksFitOnScreen = (screenWidth - xMargin - 50) / 10;
 
                     // add axes
                     graphics.setColor(Color.gray);
@@ -172,18 +172,23 @@ public class MonitorUI implements CommandLineRunner {
                     Iterator<Map.Entry<String, Long>> iterator = sortedByValue.entrySet().iterator();
 
                     int yPos = fontHeight + hitCountYPos;
-                    graphics.drawString(String.format("Hit Counts for last %s seconds", reportStatsSecs), xMargin, yPos);
+                    graphics.drawString(String.format("Highest section hit Counts for last %s seconds", reportStatsSecs), xMargin, yPos);
                     for (int i = 0; iterator.hasNext() && i < 10; i++) {
                         yPos+= fontHeight;
                         Map.Entry<String, Long> entry = iterator.next();
                         graphics.drawString(entry.getKey() + ":" + entry.getValue(), xMargin, yPos);
                     }
 
-                    if(alertTime > 0) {
+                    if(scorecard.isInHighAcivity()) {
                         graphics.setColor(Color.red);
-                        LocalDateTime time = LocalDateTime.ofEpochSecond(alertTime, 0, ZoneOffset.UTC);
-                        graphics.drawString("High alert count at " + FORMATTER.format(time), xMargin, alertYPos);
+                        graphics.drawString("High activity detected since " + FORMATTER.format(LocalDateTime.ofEpochSecond(scorecard.getFirstTimeOfThresholdExceededSecs(), 0, ZoneOffset.UTC)), xMargin, alertYPos );
                     }
+
+//                    if(alertTime > 0) {
+//                        LocalDateTime time = LocalDateTime.ofEpochSecond(alertTime, 0, ZoneOffset.UTC);
+//                        graphics.drawString("High alert count at " + FORMATTER.format(time), xMargin, alertYPos + 20);
+//                    }
+
 
                     graphics.dispose();
                 }

@@ -13,8 +13,12 @@ public class Scorecard {
     private long startTime;
     @JsonProperty("hitsReport")
     private Map<String, Long> hitsReport;
-    @JsonProperty("time-of-threshold-exceeded-alert-secs")
+    @JsonProperty("latest-time-of-threshold-exceeded-alert-secs")
     private long lastTimeOfThresholdExceededAlertSecs;
+    @JsonProperty("first-time-of-threshold-exceeded-alert-secs")
+    private long firstTimeOfThresholdExceededSecs;
+    @JsonProperty("${high-activity}")
+    private boolean inHighAcivity;
 
     public void setHitCounts(List<String> hitCounts) {
 
@@ -61,5 +65,21 @@ public class Scorecard {
     public void setLastTimeOfThresholdExceededAlertSecs(long lastTimeOfThresholdExceededAlertSecs) {
 
         this.lastTimeOfThresholdExceededAlertSecs = lastTimeOfThresholdExceededAlertSecs;
+    }
+
+    public long getFirstTimeOfThresholdExceededSecs() {
+        return firstTimeOfThresholdExceededSecs;
+    }
+
+    public void setFirstTimeOfThresholdExceededSecs(long firstTimeOfThresholdExceededSecs) {
+        this.firstTimeOfThresholdExceededSecs = firstTimeOfThresholdExceededSecs;
+    }
+
+    public void setInHighAcivity(boolean isInHighAcivity) {
+        this.inHighAcivity = isInHighAcivity;
+    }
+
+    public boolean isInHighAcivity() {
+        return inHighAcivity;
     }
 }

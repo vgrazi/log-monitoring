@@ -86,8 +86,15 @@ public class FrameProcessor {
         int hitCountForLastSeconds = StatsCruncher.getHitCountForLastSeconds(frames, secondsOfThrashing);
         if(hitCountForLastSeconds > alertThreshold) {
             scorecard.setLastTimeOfThresholdExceededAlertSecs(now);
+            if(!state.isInHighActivity()) {
+                state.setInHighActivity(true);
+                state.setFirstTimeOfThresholdExceededSecs(now);
+            }
         }
-
+        if(state.isInHighActivity()) {
+            scorecard.setInHighAcivity(true);
+            scorecard.setFirstTimeOfThresholdExceededSecs(state.getFirstTimeOfThresholdExceededSecs());
+        }
 
 
 //        Map<String, Long> failedResponses = statsCruncher.getSectionFailedResponses(frames);
