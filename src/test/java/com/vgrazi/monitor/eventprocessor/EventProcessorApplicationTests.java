@@ -1,5 +1,6 @@
 package com.vgrazi.monitor.eventprocessor;
 
+import com.vgrazi.monitor.eventprocessor.util.IOUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -9,7 +10,7 @@ import java.time.format.DateTimeFormatter;
 import java.util.Random;
 
 public class EventProcessorApplicationTests {
-    private Logger logger = LoggerFactory.getLogger(EventProcessorApplicationTests.class);
+    private final Logger logger = LoggerFactory.getLogger(EventProcessorApplicationTests.class);
     private volatile boolean running = true;
     private final DateTimeFormatter formatter =DateTimeFormatter.ofPattern("dd/MMM/yyyy:HH:mm:ss +SSSS");
     private Random random = new Random(0);
@@ -19,19 +20,7 @@ public class EventProcessorApplicationTests {
     }
     private void contextLoads() throws IOException {
         File file = new File("log/access.log");
-        File parentDir = file.getParentFile();
-        if(!parentDir.exists()) {
-            boolean mkdirs = parentDir.mkdirs();
-            if(mkdirs) {
-                logger.info("Created directory {}", parentDir);
-            }
-        }
-        if(!file.exists()) {
-            boolean created = file.createNewFile();
-            if(created) {
-                logger.info("Created file {}", file);
-            }
-        }
+        IOUtils.createDirectoryTree(file);
         try (BufferedWriter writer = new BufferedWriter(new FileWriter(file))) {
             while (running) {
                 append(writer, "127.0.0.1 - james [" ,"] \"GET /report HTTP/1.0\" 200 123");

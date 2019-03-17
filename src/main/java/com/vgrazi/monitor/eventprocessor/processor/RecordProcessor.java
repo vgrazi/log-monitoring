@@ -12,16 +12,12 @@ import java.time.ZoneOffset;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.TransferQueue;
 
 @Service
 public class RecordProcessor {
     private final ExecutorService executor = Executors.newSingleThreadExecutor();
-    Logger logger = LoggerFactory.getLogger(RecordProcessor.class);
+    private final Logger logger = LoggerFactory.getLogger(RecordProcessor.class);
     private volatile boolean running = true;
-
-    @Value("${poll-frequency-sec}")
-    private long pollFrequencySeconds;
 
     @Value("${frame-resolution-sec}")
     private long frameResolutionInSeconds;
@@ -35,40 +31,42 @@ public class RecordProcessor {
      * However best not to rely on that, so we use the real time for forming the time unit Frames
      * This is configurable. See documentation in application.properties
      */
-    public void processRecords(BlockingQueue<Record> recordQueue, TransferQueue<Frame> frameQueue) {
-        executor.execute(() -> {
-            try {
-                // each frame contains 1 seconds worth of data, starting from the frameStartTime
-                Frame frame = null;
+    public void processRecords(BlockingQueue<Record> recordQueue, BlockingQueue<Frame> frameQueue) {
+        executor.submit(() -> {
+            // each frame contains 1 seconds worth of data, starting from the frameStartTime
+            Frame frame = null;
 
-                while (running) {
-                    Record record = recordQueue.take();
-                    long recordTime = getRecordTime(record);
-                    if(frame == null) {
-                        frame = new Frame();
-                        frame.setFrameStartTime(recordTime);
-                    }
-                    else if (recordTime - frame.getStartTime() > frameResolutionInSeconds) {
-                        // Record belongs to the next Frame.
-                        // Close this Frame and prepare for processing...
-                        // Queue up the previous frame...
-                        if (!frame.isEmpty()) {
-                            // if the Frame is empty, don't queue it up, just reuse it. This guarantee that
-                            // only non-empty Frames will be processed
-                            frameQueue.put(frame);
-                            // create the next Frame
-                            frame = new Frame();
-                        }
-                        // bump the start time for the new Frame
-                        frame.setFrameStartTime(recordTime);
-                    }
-                    // add the record to the Frame
-                    frame.addRecord(record);
-                    frame.setFrameEndTime(recordTime);
+            while (running) {
+                Record record = recordQueue.take();
+                long recordTime = getRecordTime(record);
+                if(frame == null) {
+                    frame = new Frame();
+                    frame.setFrameStartTime(recordTime);
                 }
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
+                else if (recordTime - frame.getStartTime() > frameResolutionInSeconds) {
+                    // Record belongs to the next Frame.
+                    // Close this Frame and prepare for processing...
+                    // Queue up the previous frame...
+                    if (!frame.isEmpty()) {
+                        // if the Frame is empty, don't queue it up, just reuse it. This guarantee that
+                        // only non-empty Frames will be processed
+                        LocalDateTime dateTime = LocalDateTime.ofEpochSecond(recordTime, 0, ZoneOffset.UTC);
+                        logger.debug("Creating new frame for time {}", dateTime);
+                        frameQueue.put(frame);
+
+                        // create the next Frame
+                        frame = new Frame();
+                    }
+                    // bump the start time for the new Frame
+                    frame.setFrameStartTime(recordTime);
+                }
+                // add the record to the Frame
+                frame.addRecord(record);
+                frame.setFrameEndTime(recordTime);
+                Thread.yield();
             }
+            logger.info("RecordProcessor exiting");
+            return null;
         });
     }
 

@@ -61,7 +61,7 @@ public class Frame {
      * Returns the number records in this Frame
      * @return the number records in this Frame
      */
-    public int size() {
+    public int getHitCount() {
         return records.size();
     }
 }

@@ -22,6 +22,9 @@ public class WindowUtils {
             if(window.getFirst().getStartTime() - frame.getFrameEndTime() > windowDuration) {
                 window.removeFirst();
             }
+            else {
+                break;
+            }
         }
 
         // then add the new record

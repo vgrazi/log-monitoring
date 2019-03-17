@@ -26,7 +26,7 @@ public class StatsCruncher {
     }
 
     public int getRecordsPerSecond(Frame frame) {
-        return frame.size();
+        return frame.getHitCount();
     }
 
     /**
