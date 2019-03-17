@@ -23,10 +23,13 @@ import java.util.stream.Collectors;
 @Component
 public class MonitorUI implements CommandLineRunner {
 
+    public static final int axisXPos = 20;
     private JFrame  frame = new JFrame();
     @Value("${scorecard-directory}")
     private String scorecardDir;
     private volatile boolean running = true;
+    private final DateTimeFormatter FORMATTER = DateTimeFormatter.ISO_LOCAL_TIME;
+    private final DateTimeFormatter MIN_SEC_FORMATTER = DateTimeFormatter.ofPattern("mm:ss");
 
     @Value("${alert-threshold}")
     private int alertThreshold;
@@ -36,7 +39,7 @@ public class MonitorUI implements CommandLineRunner {
 
     private int alertYPos = 20;
     private int hitCountYPos = 30;
-    private int xMargin = 0;
+    private int xMargin = 20;
     private int yPosXAxis = 100;
 
     @Override
@@ -77,7 +80,7 @@ public class MonitorUI implements CommandLineRunner {
         frame.setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
         Toolkit toolkit = Toolkit.getDefaultToolkit();
         Dimension screenSize = toolkit.getScreenSize();
-        frame.setBounds(screenSize.width/8,screenSize.height/8, screenSize.width/2, screenSize.height/2);
+        frame.setBounds(screenSize.width/8,screenSize.height/16, screenSize.width/2, 7 * screenSize.height/8);
         frame.setVisible(true);
         return frame;
     }
@@ -112,6 +115,10 @@ public class MonitorUI implements CommandLineRunner {
             JPanel panel = new JPanel() {
                 @Override
                 protected void paintComponent(Graphics graphics) {
+                    Font font = new Font("Arial", Font.PLAIN, 12);
+                    graphics.setFont(font);
+                    FontMetrics fm = getFontMetrics(font);
+                    int fontHeight = fm.getHeight();
                     super.paintComponent(graphics);
                     graphics.setColor(Color.WHITE);
                     graphics.fillRect(0, 0, screenWidth, screenHeight);
@@ -119,8 +126,13 @@ public class MonitorUI implements CommandLineRunner {
                     int howManyTicksFitOnScreen = screenWidth / 10;
 
                     // add axes
-
-
+                    graphics.setColor(Color.gray);
+                    for (int i = 0; i < 10; i++) {
+                        int y1 = i * 40;
+                        graphics.drawString(String.valueOf(i * 2), axisXPos, screenHeight - y1 - yPosXAxis + fontHeight /2);
+                        // draw horizontal axes
+                        graphics.drawLine(axisXPos + 20, screenHeight - y1 - yPosXAxis, screenWidth, screenHeight - y1 - yPosXAxis);
+                    }
 
                     int start = 0;
                     if (secs.length >= howManyTicksFitOnScreen) {
@@ -132,6 +144,7 @@ public class MonitorUI implements CommandLineRunner {
                             start = 0;
                         }
                     }
+                    boolean flip = false;
                     for (int i = start; i < secs.length; i++) {
                         int hitCount = secs[i];
                         if (hitCount >= alertThreshold) {
@@ -142,17 +155,21 @@ public class MonitorUI implements CommandLineRunner {
 
                         if (hitCount > 0) {
                             graphics.setPaintMode();
-                            int x = (i - start + 1) * 10;
+                            int x = (i - start + 1) * 10 + axisXPos + 20;
+                            // draw vertical lines
                             graphics.drawLine(x, screenHeight - yPosXAxis, x, screenHeight - yPosXAxis - hitCount * 20);
+                            int y = screenHeight - yPosXAxis + 20;
+                            if(flip) {
+                                y += 20;
+                            }
+                            flip = !flip;
+                            graphics.setColor(Color.black);
+                            graphics.drawString(MIN_SEC_FORMATTER.format(LocalDateTime.ofEpochSecond(secsToHits.get(0).secs  + i, 0, ZoneOffset.UTC)), x - 10, y);
                         }
                     }
 
                     graphics.setColor(Color.blue);
-                    Font font = new Font("Arial", Font.PLAIN, 12);
-                    graphics.setFont(font);
                     Iterator<Map.Entry<String, Long>> iterator = sortedByValue.entrySet().iterator();
-                    FontMetrics fm = getFontMetrics(font);
-                    int fontHeight = fm.getHeight();
 
                     int yPos = fontHeight + hitCountYPos;
                     graphics.drawString(String.format("Hit Counts for last %s seconds", reportStatsSecs), xMargin, yPos);
@@ -165,7 +182,6 @@ public class MonitorUI implements CommandLineRunner {
                     if(alertTime > 0) {
                         graphics.setColor(Color.red);
                         LocalDateTime time = LocalDateTime.ofEpochSecond(alertTime, 0, ZoneOffset.UTC);
-                        DateTimeFormatter FORMATTER = DateTimeFormatter.ISO_LOCAL_TIME;
                         graphics.drawString("High alert count at " + FORMATTER.format(time), xMargin, alertYPos);
                     }
 
