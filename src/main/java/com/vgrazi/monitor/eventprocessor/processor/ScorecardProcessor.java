@@ -56,9 +56,8 @@ public class ScorecardProcessor {
         Path tempFile = Files.createTempFile("tmp", "tmp");
         mapper.writeValue(tempFile.toFile(), scorecard);
         Path target = Paths.get(filename);
-        File file = new File(filename);
         Files.move(tempFile, target);
-        logger.debug("wrote file: {}", file);
+        logger.debug("wrote file: {}", target);
     }
 
     @PostConstruct

@@ -20,7 +20,6 @@ import java.util.stream.Collectors;
 @Component
 public class MonitorUI implements CommandLineRunner {
 
-    private static final Object MUTEX = new Object();
     private JFrame frame = new JFrame();
     @Value("${scorecard-directory}")
     private String scorecardDir;
@@ -44,35 +43,33 @@ public class MonitorUI implements CommandLineRunner {
         Path dir = Paths.get(scorecardDir);
         WatchService watchService = FileSystems.getDefault().newWatchService();
         WatchKey watchKey = dir.register(watchService, StandardWatchEventKinds.ENTRY_CREATE);
-        while (running) {
-            watchKey.pollEvents().forEach(event ->
-            {
-                Path path = (Path) event.context();
-//                System.out.printf(" Path: %s %d %s", path, event.count(), event.kind());
-                try {
-                    Path scorecardFile = Paths.get(scorecardDir, path.getFileName().toString());
-                    // give the file a chance to flush!
-                    Thread.sleep(50);
-                    Scorecard scorecard = IOUtils.readScorecardFile(scorecardFile);
-                    Files.delete(scorecardFile);
-                    JPanel panel = displayScorecard(scorecard);
-                    frame.getContentPane().remove(0);
-                    frame.getContentPane().add(panel);
-                    frame.getContentPane().validate();
+        try {
+            while (running && watchService.take() != null) {
+                watchKey.pollEvents().forEach(event ->
+                {
+                    Path path = (Path) event.context();
+                    System.out.printf(" Path: %s %d %s", path, event.count(), event.kind());
+                    try {
+                        Path scorecardFile = Paths.get(scorecardDir, path.getFileName().toString());
+                        // give the file a chance to flush!
+                        Thread.sleep(50);
+                        Scorecard scorecard = IOUtils.readScorecardFile(scorecardFile);
+                        Files.delete(scorecardFile);
+                        JPanel panel = displayScorecard(scorecard);
+                        frame.getContentPane().remove(0);
+                        frame.getContentPane().add(panel);
+                        frame.getContentPane().validate();
 
-                } catch (IOException e) {
-                    e.printStackTrace();
-                } catch (InterruptedException e) {
-                    Thread.currentThread().interrupt();
-                }
-            });
-            synchronized (MUTEX) {
-                try {
-                    MUTEX.wait(50);
-                } catch (InterruptedException e) {
-                    Thread.currentThread().interrupt();
-                }
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    } catch (InterruptedException e) {
+                        Thread.currentThread().interrupt();
+                    }
+                });
+                watchKey.reset();
             }
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
         }
     }
 
@@ -150,8 +147,5 @@ public class MonitorUI implements CommandLineRunner {
 
     public void stop() {
         running = false;
-        synchronized (MUTEX) {
-            MUTEX.notify();
-        }
     }
 }
