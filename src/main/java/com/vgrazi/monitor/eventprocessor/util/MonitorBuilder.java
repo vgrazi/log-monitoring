@@ -11,7 +11,6 @@ import java.util.*;
 import java.util.List;
 
 public class MonitorBuilder {
-    private final static DateTimeFormatter FORMATTER = DateTimeFormatter.ISO_LOCAL_TIME;
     private final static DateTimeFormatter DATE_TIME_FORMATTER = DateTimeFormatter.ISO_LOCAL_DATE_TIME;
     private final static DateTimeFormatter HR_MIN_SEC_FORMATTER = DateTimeFormatter.ofPattern("HH:mm:ss");
     private static final Font labelFont = new Font("Courier", Font.PLAIN, 10);
@@ -59,7 +58,7 @@ public class MonitorBuilder {
 
             if (hitCount > 0) {
                 graphics.setPaintMode();
-                int x = (i - start + 1) * 10 + axisXPos + 20;
+                int x = (i - start + 1) * 20 + axisXPos + 20;
                 // draw vertical lines
                 graphics.drawLine(x, screenHeight - axisYPos, x, screenHeight - axisYPos - hitCount * 20);
                 int y = screenHeight - axisYPos + 20;

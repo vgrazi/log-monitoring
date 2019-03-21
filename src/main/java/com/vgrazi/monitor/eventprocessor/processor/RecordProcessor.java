@@ -47,7 +47,7 @@ public class RecordProcessor {
                     frame = new Frame();
                     frame.setFrameStartTime(recordTime);
                 }
-                else if (recordTime - frame.getStartTime() > frameResolutionInSeconds) {
+                else if (recordTime - frame.getStartTime() >= frameResolutionInSeconds) {
                     // Record belongs to the next Frame.
                     // Close this Frame and prepare for processing...
                     // Queue up the previous frame...
