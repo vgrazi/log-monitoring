@@ -21,6 +21,8 @@ import java.util.concurrent.Executors;
 
 /**
  * Picks up Frames of 1 second's worth of records, adjusts the "State" and computes a scorecard
+ * Note that all data consumed by the monitor is produced in this FrameProcessor class, and persisted to the filesystem
+ * in the form of a Scorecard file.
  * Scorecards are then thrown onto the Scorecard queue where they are picked up by the ScorecardProcessor
  */
 @Service
@@ -81,17 +83,41 @@ public class FrameProcessor {
         scorecard.setHitCounts(hitCounts);
 
         // generate hits report
+        long now = saveHitsReportToState(frames, state);
+        scorecard.setHitsReport(state.getHitsReport());
+
+        // generate average hit counts for last 2 minutes
+        int avgHitCountForLastSeconds = StatsCruncher.getHitCountForLastSeconds(frames, secondsOfThrashing)/ frames.size();
+        saveHitCountAlertsToState(scorecard, now, avgHitCountForLastSeconds, state);
+
+        scorecard.setLastTimeOfThresholdExceededAlertSecs(state.getLastTimeOfThresholdExceededAlertSecs());
+        scorecard.setFirstTimeOfThresholdExceededSecs(state.getFirstTimeOfThresholdExceededSecs());
+        scorecard.setInHighActivity(state.isInHighActivity());
+        scorecard.setHistory(state.getHistory());
+
+//        Map<String, Long> failedResponses = statsCruncher.getSectionFailedResponses(frames);
+//        Map<String, Long> allHitCount = statsCruncher.getSectionHitCounts(frames);
+//        Map.Entry<String, Long> max = statsCruncher.getMaxCountKey(hitCounts);
+        // we are guaranteed that no empty window is returned
+        return scorecard;
+    }
+
+    /**
+     * Iterates the Frames deque,
+     * @param frames
+     * @return
+     */
+    private long saveHitsReportToState(Deque<Frame> frames, State state) {
         long now = frames.getLast().getFrameEndTime();
         if(state.getLastStatsReportTimeSecs() + reportStatsTimeSecs <= now) {
             state.setLastStatsReportTimeSecs(now);
             Map<String, Long> hitsReport = statsCruncher.generateHitsReport(frames, reportStatsTimeSecs);
             state.setHitsReport(hitsReport);
         }
+        return now;
+    }
 
-        scorecard.setHitsReport(state.getHitsReport());
-
-        // generate average hit counts for last 2 minutes
-        int avgHitCountForLastSeconds = StatsCruncher.getHitCountForLastSeconds(frames, secondsOfThrashing)/ frames.size();
+    private void saveHitCountAlertsToState(Scorecard scorecard, long now, int avgHitCountForLastSeconds, State state) {
         if(avgHitCountForLastSeconds > alertThreshold) {
             state.setLastTimeOfThresholdExceededAlertSecs(now);
 
@@ -113,16 +139,6 @@ public class FrameProcessor {
                 }
             }
         }
-        scorecard.setLastTimeOfThresholdExceededAlertSecs(state.getLastTimeOfThresholdExceededAlertSecs());
-        scorecard.setFirstTimeOfThresholdExceededSecs(state.getFirstTimeOfThresholdExceededSecs());
-        scorecard.setInHighActivity(state.isInHighActivity());
-        scorecard.setHistory(state.getHistory());
-
-//        Map<String, Long> failedResponses = statsCruncher.getSectionFailedResponses(frames);
-//        Map<String, Long> allHitCount = statsCruncher.getSectionHitCounts(frames);
-//        Map.Entry<String, Long> max = statsCruncher.getMaxCountKey(hitCounts);
-        // we are guaranteed that no empty window is returned
-        return scorecard;
     }
 
     /**
