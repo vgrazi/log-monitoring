@@ -67,16 +67,16 @@ public class EventLogGenerator implements CommandLineRunner {
             long deltaTimeMS = currentTimeMS - APP_START_TIME;
             if (deltaTimeMS < 1000*30) {
                 // slow start for 30 seconds
-                logger.info("Slow. Delta:{}", deltaTimeMS);
+                logger.debug("Slow. Delta:{}", deltaTimeMS);
                 Thread.sleep(300+random.nextInt(101));
             }
             else if (deltaTimeMS < 1000*600) {
-                logger.info("Fast. Delta:{}", deltaTimeMS);
+                logger.debug("Fast. Delta:{}", deltaTimeMS);
                 // then high speed for 10 minutes
                 Thread.sleep(10+random.nextInt(101));
             }
             else {
-                logger.info("SLOW for the rest. Delta:{}", deltaTimeMS);
+                logger.debug("SLOW for the rest. Delta:{}", deltaTimeMS);
                 Thread.sleep(300+random.nextInt(101));
             }
         } catch (IOException e) {
