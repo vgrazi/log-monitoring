@@ -65,5 +65,14 @@ public class ScorecardProcessor {
         FORMATTER = DateTimeFormatter.ofPattern(DATE_FILE_PATTERN);
     }
 
+    /**
+     * gracefully stop the file reader after the current line is done
+     */
+    public void stop() {
+        running = false;
+        // shut down the executor. Will wait to finish any existing tasks
+        executor.shutdown();
+    }
+
 
 }

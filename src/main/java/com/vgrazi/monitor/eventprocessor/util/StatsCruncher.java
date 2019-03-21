@@ -2,8 +2,13 @@ package com.vgrazi.monitor.eventprocessor.util;
 
 import com.vgrazi.monitor.eventprocessor.domain.Frame;
 import com.vgrazi.monitor.eventprocessor.domain.Record;
+import com.vgrazi.monitor.eventprocessor.domain.Scorecard;
+import com.vgrazi.monitor.eventprocessor.domain.State;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDateTime;
+import java.time.ZoneOffset;
+import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -11,6 +16,8 @@ import static java.util.stream.Collectors.toMap;
 
 @Service
 public class StatsCruncher {
+
+    private final static DateTimeFormatter FORMATTER = DateTimeFormatter.ISO_LOCAL_TIME;
 
     /**
      * Sorts the map in reverse order of value
@@ -97,5 +104,46 @@ public class StatsCruncher {
             }
         }
         return counts;
+    }
+
+    /**
+     * Iterates the Frames deque to produce a hits report for each second, and then saves that hits report to the state
+     * @param frames
+     * @param state
+     * @param reportStatsTimeSecs
+     * @return
+     */
+    public long saveHitsReportToState(Deque<Frame> frames, State state, int reportStatsTimeSecs) {
+        long now = frames.getLast().getFrameEndTime();
+        if(state.getLastStatsReportTimeSecs() + reportStatsTimeSecs <= now) {
+            state.setLastStatsReportTimeSecs(now);
+            Map<String, Long> hitsReport = generateHitsReport(frames, reportStatsTimeSecs);
+            state.setHitsReport(hitsReport);
+        }
+        return now;
+    }
+
+    public void saveHitCountAlertsToState(Scorecard scorecard, long now, int avgHitCountForLastSeconds, State state, int alertThreshold, int secondsOfThrashing) {
+        if(avgHitCountForLastSeconds > alertThreshold) {
+            state.setLastTimeOfThresholdExceededAlertSecs(now);
+
+            if(!state.isInHighActivity()) {
+                state.setInHighActivity(true);
+                state.setFirstTimeOfThresholdExceededSecs(now);
+            }
+        }
+        else {
+            // we are not currently in high activity. Check if we are coming out of a high activity state
+            if(state.isInHighActivity()) {
+                if(now - state.getLastTimeOfThresholdExceededAlertSecs() > secondsOfThrashing) {
+                    state.setInHighActivity(false);
+                    String message = String.format("State was in high alert from %s to %s.",
+                            FORMATTER.format(LocalDateTime.ofEpochSecond(state.getFirstTimeOfThresholdExceededSecs(), 0, ZoneOffset.UTC)),
+                            FORMATTER.format(LocalDateTime.ofEpochSecond(state.getLastTimeOfThresholdExceededAlertSecs(), 0, ZoneOffset.UTC)));
+                    state.addHistoryMessage(message);
+                    scorecard.setAlert(message);
+                }
+            }
+        }
     }
 }

@@ -11,10 +11,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
-import java.time.LocalDateTime;
-import java.time.ZoneOffset;
-import java.time.format.DateTimeFormatter;
-import java.util.*;
+import java.util.Deque;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -30,7 +29,6 @@ public class FrameProcessor {
     private final ExecutorService executor = Executors.newSingleThreadExecutor();
     private final Logger logger = LoggerFactory.getLogger(FrameProcessor.class);
     private volatile boolean running = true;
-    private final static DateTimeFormatter FORMATTER = DateTimeFormatter.ISO_LOCAL_TIME;
 
     @Value("${report-stats-secs}")
     private int reportStatsTimeSecs;
@@ -83,12 +81,12 @@ public class FrameProcessor {
         scorecard.setHitCounts(hitCounts);
 
         // generate hits report
-        long now = saveHitsReportToState(frames, state);
+        long now = statsCruncher.saveHitsReportToState(frames, state, reportStatsTimeSecs);
         scorecard.setHitsReport(state.getHitsReport());
 
         // generate average hit counts for last 2 minutes
         int avgHitCountForLastSeconds = StatsCruncher.getHitCountForLastSeconds(frames, secondsOfThrashing)/ frames.size();
-        saveHitCountAlertsToState(scorecard, now, avgHitCountForLastSeconds, state);
+        statsCruncher.saveHitCountAlertsToState(scorecard, now, avgHitCountForLastSeconds, state, alertThreshold, secondsOfThrashing);
 
         scorecard.setLastTimeOfThresholdExceededAlertSecs(state.getLastTimeOfThresholdExceededAlertSecs());
         scorecard.setFirstTimeOfThresholdExceededSecs(state.getFirstTimeOfThresholdExceededSecs());
@@ -100,45 +98,6 @@ public class FrameProcessor {
 //        Map.Entry<String, Long> max = statsCruncher.getMaxCountKey(hitCounts);
         // we are guaranteed that no empty window is returned
         return scorecard;
-    }
-
-    /**
-     * Iterates the Frames deque,
-     * @param frames
-     * @return
-     */
-    private long saveHitsReportToState(Deque<Frame> frames, State state) {
-        long now = frames.getLast().getFrameEndTime();
-        if(state.getLastStatsReportTimeSecs() + reportStatsTimeSecs <= now) {
-            state.setLastStatsReportTimeSecs(now);
-            Map<String, Long> hitsReport = statsCruncher.generateHitsReport(frames, reportStatsTimeSecs);
-            state.setHitsReport(hitsReport);
-        }
-        return now;
-    }
-
-    private void saveHitCountAlertsToState(Scorecard scorecard, long now, int avgHitCountForLastSeconds, State state) {
-        if(avgHitCountForLastSeconds > alertThreshold) {
-            state.setLastTimeOfThresholdExceededAlertSecs(now);
-
-            if(!state.isInHighActivity()) {
-                state.setInHighActivity(true);
-                state.setFirstTimeOfThresholdExceededSecs(now);
-            }
-        }
-        else {
-            // we are not currently in high activity. Check if we are coming out of a high activity state
-            if(state.isInHighActivity()) {
-                if(now - state.getLastTimeOfThresholdExceededAlertSecs() > secondsOfThrashing) {
-                    state.setInHighActivity(false);
-                    String message = String.format("State was in high alert from %s to %s.",
-                            FORMATTER.format(LocalDateTime.ofEpochSecond(state.getFirstTimeOfThresholdExceededSecs(), 0, ZoneOffset.UTC)),
-                            FORMATTER.format(LocalDateTime.ofEpochSecond(state.getLastTimeOfThresholdExceededAlertSecs(), 0, ZoneOffset.UTC)));
-                    state.addHistoryMessage(message);
-                    scorecard.setAlert(message);
-                }
-            }
-        }
     }
 
     /**
