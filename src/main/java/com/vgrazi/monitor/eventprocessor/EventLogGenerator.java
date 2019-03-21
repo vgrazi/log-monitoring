@@ -64,7 +64,7 @@ public class EventLogGenerator implements CommandLineRunner {
             writer.flush();
             logger.debug("writing: {}{}{})", prefix, format, suffix);
             long currentTimeMS = System.currentTimeMillis();
-            long deltaTimeMS = currentTimeMS - APP_START_TIME;
+            long deltaTimeMS = (currentTimeMS - APP_START_TIME) % 1_000_000L;
             if (deltaTimeMS < 1000*30) {
                 // slow start for 30 seconds
                 logger.debug("Slow. Delta:{}", deltaTimeMS);

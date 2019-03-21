@@ -7,6 +7,7 @@ import java.awt.*;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
+import java.time.temporal.ChronoField;
 import java.util.*;
 import java.util.List;
 
@@ -33,7 +34,7 @@ public class MonitorBuilder {
             graphics.drawString("High activity detected since " + DATE_TIME_FORMATTER.format(LocalDateTime.ofEpochSecond(scorecard.getFirstTimeOfThresholdExceededSecs(), 0, ZoneOffset.UTC)), xMargin, alertYPos );
         }
     }
-
+    public static int startSeconds = LocalDateTime.now().get(ChronoField.SECOND_OF_DAY);
     public static void renderBarGraph(Graphics graphics, int screenWidth, int screenHeight, int[] secs, List<MonitorUI.SecsToHits> secsToHits, int alertThreshold) {
         int howManyTicksFitOnScreen = (screenWidth - xMargin - 50) / xPixelDelta;
         int start = 0;
@@ -61,17 +62,23 @@ public class MonitorBuilder {
                 int x = (i - start + 1) * xPixelDelta  + axisXPos + 20;
                 // draw vertical lines
                 graphics.drawLine(x, screenHeight - axisYPos, x, screenHeight - axisYPos - hitCount * 20);
+
+                // now render the x axis labels, alternate the labels along 2 rows, so there is room for everything. We use seconds since
+                // start, so that the any given time will always display on the same row,
                 int y = screenHeight - axisYPos + 20;
-                if(x % 3 == 1) {
+                LocalDateTime dateTime = LocalDateTime.ofEpochSecond(secsToHits.get(0).getSecs() + i, 0, ZoneOffset.UTC);
+                int seconds = dateTime.get(ChronoField.SECOND_OF_DAY);
+                int deltaSeconds = seconds - startSeconds;
+                if(deltaSeconds % 3 == 1) {
 
                     y += 30;
                 }
-                else if(x % 3 == 2) {
+                else if(deltaSeconds % 3 == 0) {
                     y += 15;
                 }
                 graphics.setColor(Color.black);
                 graphics.setFont(labelFont);
-                graphics.drawString(HR_MIN_SEC_FORMATTER.format(LocalDateTime.ofEpochSecond(secsToHits.get(0).getSecs()  + i, 0, ZoneOffset.UTC)), x - 10, y);
+                graphics.drawString(HR_MIN_SEC_FORMATTER.format(dateTime), x - 10, y);
             }
         }
     }
