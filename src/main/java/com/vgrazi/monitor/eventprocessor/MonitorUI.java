@@ -1,9 +1,11 @@
 package com.vgrazi.monitor.eventprocessor;
 
+import com.sun.org.glassfish.external.statistics.Stats;
 import com.vgrazi.monitor.eventprocessor.domain.Scorecard;
 import com.vgrazi.monitor.eventprocessor.util.IOUtils;
 import com.vgrazi.monitor.eventprocessor.util.MonitorBuilder;
 import com.vgrazi.monitor.eventprocessor.util.StatsCruncher;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.stereotype.Component;
@@ -35,6 +37,9 @@ public class MonitorUI implements CommandLineRunner {
 
     @Value("${report-stats-secs}")
     private String reportStatsSecs;
+
+    @Autowired
+    private StatsCruncher statsCruncher;
 
 
     @Override
@@ -96,7 +101,7 @@ public class MonitorUI implements CommandLineRunner {
         List<SecsToHits> secsToHits = hitCountList.stream().map(SecsToHits::new).collect(Collectors.toList());
 
         Map<String, Long> hitsReport = scorecard.getHitsReport();
-        LinkedHashMap<String, Long> hitsReportSorted = StatsCruncher.sortByValueReverseOrder(hitsReport);
+        LinkedHashMap<String, Long> hitsReportSorted = statsCruncher.sortByValueReverseOrder(hitsReport);
 
         if (!secsToHits.isEmpty()) {
             int[] hitCounts = getHitCountsForScorecard(secsToHits);

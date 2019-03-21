@@ -4,6 +4,7 @@ import com.vgrazi.monitor.eventprocessor.domain.Frame;
 import com.vgrazi.monitor.eventprocessor.domain.Record;
 import com.vgrazi.monitor.eventprocessor.domain.Scorecard;
 import com.vgrazi.monitor.eventprocessor.domain.State;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
@@ -17,12 +18,21 @@ import static java.util.stream.Collectors.toMap;
 @Service
 public class StatsCruncher {
 
-    private final static DateTimeFormatter FORMATTER = DateTimeFormatter.ISO_LOCAL_TIME;
+    private final DateTimeFormatter FORMATTER = DateTimeFormatter.ISO_LOCAL_TIME;
+    @Value("${report-stats-secs}")
+    private int reportStatsTimeSecs;
+
+    @Value("${seconds-of-thrashing}")
+// if average hit count > alert-threshold for 120 seconds, display alert
+    private int secondsOfThrashing;
+
+    @Value("${alert-threshold}")
+    private int alertThreshold;
 
     /**
      * Sorts the map in reverse order of value
      */
-    public static LinkedHashMap<String, Long> sortByValueReverseOrder(Map<String, Long> hitsReport) {
+    public LinkedHashMap<String, Long> sortByValueReverseOrder(Map<String, Long> hitsReport) {
         return hitsReport.entrySet().stream()
                 .sorted(Collections.reverseOrder(Map.Entry.comparingByValue()))
                 .collect(toMap(Map.Entry::getKey, Map.Entry::getValue, (e1, e2) -> e2, LinkedHashMap::new));
@@ -31,14 +41,14 @@ public class StatsCruncher {
     /**
      * Extracts the time:hitCount for each frame in the list
      */
-    public static List<String> extractHitCountList(Deque<Frame> frames) {
+    public List<String> extractHitCountList(Deque<Frame> frames) {
         List<String> hitCounts = frames.stream()
                 .map(frame -> String.format("%s:%s", frame.getStartTime(), frame.getHitCount()))
                 .collect(Collectors.toList());
         return hitCounts;
     }
 
-    public static int getHitCountForLastSeconds(Deque<Frame> frames, int seconds) {
+    private int getHitCountForLastSeconds(Deque<Frame> frames, int seconds) {
         int sum = 0;
         Iterator<Frame> iterator = frames.descendingIterator();
         for (int i = 0; iterator.hasNext() && i < seconds; i++) {
@@ -51,7 +61,7 @@ public class StatsCruncher {
     /**
      * Iterates the records in the Frame to produce a sorted map of hit counts per section
      */
-    public Map<String, Long> getSectionHitCounts(Frame frame) {
+    private Map<String, Long> getSectionHitCounts(Frame frame) {
         Map<String, Long> counts = frame.stream().collect(Collectors.groupingBy(Record::getSection, Collectors.counting()));
         return counts;
     }
@@ -108,12 +118,8 @@ public class StatsCruncher {
 
     /**
      * Iterates the Frames deque to produce a hits report for each second, and then saves that hits report to the state
-     * @param frames
-     * @param state
-     * @param reportStatsTimeSecs
-     * @return
      */
-    public long saveHitsReportToState(Deque<Frame> frames, State state, int reportStatsTimeSecs) {
+    private long saveHitsReportToState(Deque<Frame> frames, State state, int reportStatsTimeSecs) {
         long now = frames.getLast().getFrameEndTime();
         if(state.getLastStatsReportTimeSecs() + reportStatsTimeSecs <= now) {
             state.setLastStatsReportTimeSecs(now);
@@ -123,7 +129,7 @@ public class StatsCruncher {
         return now;
     }
 
-    public void saveHitCountAlertsToState(Scorecard scorecard, long now, int avgHitCountForLastSeconds, State state, int alertThreshold, int secondsOfThrashing) {
+    private void saveHitCountAlertsToState(Scorecard scorecard, long now, int avgHitCountForLastSeconds, State state) {
         if(avgHitCountForLastSeconds > alertThreshold) {
             state.setLastTimeOfThresholdExceededAlertSecs(now);
 
@@ -145,5 +151,21 @@ public class StatsCruncher {
                 }
             }
         }
+    }
+
+    /**
+     * This is the master facade, called by FrameProcessor to generate all of the current state base on the incoming
+     *
+     * frames
+     * @param frames
+     * @param scorecard
+     * @param state
+     */
+    public void generateState(Deque<Frame> frames, Scorecard scorecard, State state) {
+        // generate hits report
+        long now = saveHitsReportToState(frames, state, reportStatsTimeSecs);
+        // generate average hit counts for last 2 minutes
+        int avgHitCountForLastSeconds = getHitCountForLastSeconds(frames, secondsOfThrashing)/ frames.size();
+        saveHitCountAlertsToState(scorecard, now, avgHitCountForLastSeconds, state);
     }
 }
