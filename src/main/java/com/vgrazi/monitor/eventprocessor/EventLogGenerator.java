@@ -52,6 +52,7 @@ public class EventLogGenerator implements CommandLineRunner {
         }
     }
 
+    private final long APP_START_TIME = System.currentTimeMillis();
     private void append(BufferedWriter writer, String prefix, String suffix) {
         try {
             LocalDateTime now = LocalDateTime.now();
@@ -62,8 +63,22 @@ public class EventLogGenerator implements CommandLineRunner {
             writer.write('\n');
             writer.flush();
             logger.debug("writing: {}{}{})", prefix, format, suffix);
-
-            Thread.sleep(10+random.nextInt(401));
+            long currentTimeMS = System.currentTimeMillis();
+            long deltaTimeMS = currentTimeMS - APP_START_TIME;
+            if (deltaTimeMS < 1000*30) {
+                // slow start for 30 seconds
+                logger.info("Slow. Delta:{}", deltaTimeMS);
+                Thread.sleep(300+random.nextInt(101));
+            }
+            else if (deltaTimeMS < 1000*600) {
+                logger.info("Fast. Delta:{}", deltaTimeMS);
+                // then high speed for 10 minutes
+                Thread.sleep(10+random.nextInt(101));
+            }
+            else {
+                logger.info("SLOW for the rest. Delta:{}", deltaTimeMS);
+                Thread.sleep(300+random.nextInt(101));
+            }
         } catch (IOException e) {
             throw new UncheckedIOException(e);
         } catch (InterruptedException e) {
