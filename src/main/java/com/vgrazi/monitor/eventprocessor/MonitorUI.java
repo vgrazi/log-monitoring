@@ -17,6 +17,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+/**
+ * Listens for new Scorecard files in the "output" directory, consumes them, renders them, and deletes them
+ */
 @Component
 public class MonitorUI implements CommandLineRunner {
 
@@ -34,7 +37,7 @@ public class MonitorUI implements CommandLineRunner {
 
     @Override
     public void run(String... args) throws IOException {
-        JFrame frame = createFrame();
+        JFrame frame = createJFrame();
         frame.add(new JPanel());
         watchForFiles();
     }
@@ -73,7 +76,7 @@ public class MonitorUI implements CommandLineRunner {
         }
     }
 
-    private JFrame createFrame() {
+    private JFrame createJFrame() {
         frame.setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
         Toolkit toolkit = Toolkit.getDefaultToolkit();
         Dimension screenSize = toolkit.getScreenSize();
@@ -87,36 +90,24 @@ public class MonitorUI implements CommandLineRunner {
         int screenHeight = size.height;
         int screenWidth = size.width;
 
-        List<String> hitCounts = scorecard.getHitCounts();
-        List<SecsToHits> secsToHits = hitCounts.stream().map(SecsToHits::new).collect(Collectors.toList());
+        List<String> hitCountList = scorecard.getHitCounts();
+        List<SecsToHits> secsToHits = hitCountList.stream().map(SecsToHits::new).collect(Collectors.toList());
 
         Map<String, Long> hitsReport = scorecard.getHitsReport();
         LinkedHashMap<String, Long> hitsReportSorted = StatsCruncher.sortByValueReverseOrder(hitsReport);
 
         if (!secsToHits.isEmpty()) {
-            long min = secsToHits.get(0).secs;
-            long max = secsToHits.get(secsToHits.size() - 1).secs;
-            long count = max - min + 1;
-
-            int[] secs = new int[(int) count];
-            for (int i = 0, j = 0; i < count; i++) {
-                SecsToHits secsHits = secsToHits.get(j);
-                long recordSecs = secsHits.secs;
-                if (recordSecs == min + i) {
-                    secs[i] = secsHits.hits;
-                    j++;
-                }
-            }
+            int[] hitCounts = getHitCountsForScorecard(secsToHits);
             JPanel panel = new JPanel() {
                 @Override
                 protected void paintComponent(Graphics graphics) {
                     super.paintComponent(graphics);
                     MonitorBuilder.clearBackground(graphics, screenWidth, screenHeight);
-                    MonitorBuilder.renderAxes(graphics, screenHeight, screenWidth);
-                    MonitorBuilder.renderBarGraph(graphics, screenWidth, secs, screenHeight, secsToHits, MonitorBuilder.xMargin, alertThreshold, MonitorBuilder.labelFont, MonitorBuilder.HR_MIN_SEC_FORMATTER);
-                    MonitorBuilder.renderAlerts(graphics, scorecard, MonitorBuilder.xMargin, MonitorBuilder.alertYPos);
-                    MonitorBuilder.renderHitsReport(graphics, hitsReportSorted, MonitorBuilder.hitCountYPos, reportStatsSecs, MonitorBuilder.xMargin);
-                    MonitorBuilder.renderHistory(graphics, scorecard, MonitorBuilder.alertYPos, MonitorBuilder.xHistoryPos);
+                    MonitorBuilder.renderAxes(graphics, screenWidth, screenHeight);
+                    MonitorBuilder.renderBarGraph(graphics, screenWidth, screenHeight, hitCounts, secsToHits, alertThreshold);
+                    MonitorBuilder.renderAlerts(graphics, scorecard);
+                    MonitorBuilder.renderHitsReport(graphics, hitsReportSorted, reportStatsSecs);
+                    MonitorBuilder.renderHistory(graphics, scorecard);
 
                     graphics.dispose();
                 }
@@ -124,6 +115,30 @@ public class MonitorUI implements CommandLineRunner {
             return panel;
         }
         return null;
+    }
+
+    /**
+     * This method computes an int array based on the incoming SecsToHits list.
+     * Background: Scorecard contains all of the data required for rendering, including the entire historical x and y graph data
+     * The x axis are the "secs" part of SecsToHits
+     * The y-axis are the "hits" part of SecsToHits
+     * Iterates all of the
+     */
+    private int[] getHitCountsForScorecard(List<SecsToHits> secsToHits) {
+        long min = secsToHits.get(0).secs;
+        long max = secsToHits.get(secsToHits.size() - 1).secs;
+        long count = max - min + 1;
+
+        int[] secs = new int[(int) count];
+        for (int i = 0, j = 0; i < count; i++) {
+            SecsToHits secsHits = secsToHits.get(j);
+            long recordSecs = secsHits.secs;
+            if (recordSecs == min + i) {
+                secs[i] = secsHits.hits;
+                j++;
+            }
+        }
+        return secs;
     }
 
     public class SecsToHits {

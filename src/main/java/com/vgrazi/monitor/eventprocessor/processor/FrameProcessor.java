@@ -19,6 +19,10 @@ import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
+/**
+ * Picks up Frames of 1 second's worth of records, adjusts the "State" and computes a scorecard
+ * Scorecards are then thrown onto the Scorecard queue where they are picked up by the ScorecardProcessor
+ */
 @Service
 public class FrameProcessor {
     private final ExecutorService executor = Executors.newSingleThreadExecutor();

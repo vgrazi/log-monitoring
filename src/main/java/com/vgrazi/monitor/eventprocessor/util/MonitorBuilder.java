@@ -13,16 +13,16 @@ import java.util.List;
 public class MonitorBuilder {
     private final static DateTimeFormatter FORMATTER = DateTimeFormatter.ISO_LOCAL_TIME;
     private final static DateTimeFormatter DATE_TIME_FORMATTER = DateTimeFormatter.ISO_LOCAL_DATE_TIME;
-    public final static DateTimeFormatter HR_MIN_SEC_FORMATTER = DateTimeFormatter.ofPattern("HH:mm:ss");
-    public static final Font labelFont = new Font("Courier", Font.PLAIN, 10);
+    private final static DateTimeFormatter HR_MIN_SEC_FORMATTER = DateTimeFormatter.ofPattern("HH:mm:ss");
+    private static final Font labelFont = new Font("Courier", Font.PLAIN, 10);
     private static final int axisXPos = 20;
     private static final int axisYPos = 100;
-    public static final int xHistoryPos = 400;
-    public static int alertYPos = 20;
-    public static int hitCountYPos = 30;
-    public static int xMargin = 20;
+    private static final int xHistoryPos = 400;
+    private static int alertYPos = 20;
+    private static int hitCountYPos = 30;
+    private static int xMargin = 20;
     private static final Font font = new Font("Arial", Font.PLAIN, 12);
-    public static void renderAlerts(Graphics graphics, Scorecard scorecard, int xMargin, int alertYPos) {
+    public static void renderAlerts(Graphics graphics, Scorecard scorecard) {
         String alert = scorecard.getAlert();
         if(alert != null) {
             graphics.setColor(Color.red);
@@ -34,7 +34,7 @@ public class MonitorBuilder {
         }
     }
 
-    public static void renderBarGraph(Graphics graphics, int screenWidth, int[] secs, int screenHeight, List<MonitorUI.SecsToHits> secsToHits, int xMargin, int alertThreshold, Font labelFont, DateTimeFormatter HR_MIN_SEC_FORMATTER) {
+    public static void renderBarGraph(Graphics graphics, int screenWidth, int screenHeight, int[] secs, List<MonitorUI.SecsToHits> secsToHits, int alertThreshold) {
         int howManyTicksFitOnScreen = (screenWidth - xMargin - 50) / 10;
         int start = 0;
         if (secs.length >= howManyTicksFitOnScreen) {
@@ -77,7 +77,7 @@ public class MonitorBuilder {
         }
     }
 
-    public static void renderAxes(Graphics graphics, int screenHeight, int screenWidth) {
+    public static void renderAxes(Graphics graphics, int screenWidth, int screenHeight) {
         // add axes
         graphics.setColor(Color.gray);
         FontMetrics fm = graphics.getFontMetrics(font);
@@ -91,7 +91,7 @@ public class MonitorBuilder {
         }
     }
 
-    public static void renderHistory(Graphics graphics, Scorecard scorecard, int alertYPos, int xHistoryPos) {
+    public static void renderHistory(Graphics graphics, Scorecard scorecard) {
         // render the history
         int yPos = alertYPos;
         graphics.setColor(Color.blue);
@@ -110,7 +110,7 @@ public class MonitorBuilder {
         }
     }
 
-    public static void renderHitsReport(Graphics graphics, LinkedHashMap<String, Long> hitsReportSorted, int hitCountYPos, String reportStatsSecs, int xMargin) {
+    public static void renderHitsReport(Graphics graphics, LinkedHashMap<String, Long> hitsReportSorted, String reportStatsSecs) {
         // render the hits report
         graphics.setColor(Color.blue);
         Iterator<Map.Entry<String, Long>> iterator = hitsReportSorted.entrySet().iterator();

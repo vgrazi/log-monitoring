@@ -8,7 +8,6 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import javax.annotation.PostConstruct;
-import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -20,7 +19,8 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 /**
- * Processes and writes the scorecard to the file system
+ * Listens for new Scorecards on the ScorecardQueue, and writes them to the file system, where they are picked up
+ * by the MonitorUI, displayed, and deleted.
  */
 @Service
 public class ScorecardProcessor {

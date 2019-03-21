@@ -13,6 +13,10 @@ import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
+/**
+ * Processes records from the Record Queue, grouping them into "Frames" (of 1 second in size) based on the time specified
+ * in the record, and then throws the Frames onto the FrameProcessor queue
+ */
 @Service
 public class RecordProcessor {
     private final ExecutorService executor = Executors.newSingleThreadExecutor();

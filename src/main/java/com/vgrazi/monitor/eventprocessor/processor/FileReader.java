@@ -13,6 +13,9 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 @Component
+/**
+ * Tails the event file, converting new log events to Records, and throwing them on the RecordProcessor queue
+ */
 public class FileReader {
     private final Logger logger = LoggerFactory.getLogger(FileReader.class);
     private final ExecutorService executor = Executors.newSingleThreadExecutor();
