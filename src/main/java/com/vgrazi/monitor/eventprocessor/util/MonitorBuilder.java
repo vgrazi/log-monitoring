@@ -18,6 +18,7 @@ public class MonitorBuilder {
     private static final int axisYPos = 100;
     private static final int xHistoryPos = 400;
     private static int alertYPos = 20;
+    private static int xPixelDelta = 20;
     private static int hitCountYPos = 30;
     private static int xMargin = 20;
     private static final Font font = new Font("Arial", Font.PLAIN, 12);
@@ -34,10 +35,10 @@ public class MonitorBuilder {
     }
 
     public static void renderBarGraph(Graphics graphics, int screenWidth, int screenHeight, int[] secs, List<MonitorUI.SecsToHits> secsToHits, int alertThreshold) {
-        int howManyTicksFitOnScreen = (screenWidth - xMargin - 50) / 10;
+        int howManyTicksFitOnScreen = (screenWidth - xMargin - 50) / xPixelDelta;
         int start = 0;
         if (secs.length >= howManyTicksFitOnScreen) {
-            start = secs.length - howManyTicksFitOnScreen + 2;
+            start = secs.length - howManyTicksFitOnScreen;
             if (start < 0) {
                 start = 0;
             } else if (start >= secs.length) {
@@ -47,7 +48,6 @@ public class MonitorBuilder {
         }
 
         // plot the vertical bars
-        int flip = 0;
         for (int i = start; i < secs.length; i++) {
             int hitCount = secs[i];
             if (hitCount >= alertThreshold) {
@@ -58,17 +58,17 @@ public class MonitorBuilder {
 
             if (hitCount > 0) {
                 graphics.setPaintMode();
-                int x = (i - start + 1) * 20 + axisXPos + 20;
+                int x = (i - start + 1) * xPixelDelta  + axisXPos + 20;
                 // draw vertical lines
                 graphics.drawLine(x, screenHeight - axisYPos, x, screenHeight - axisYPos - hitCount * 20);
                 int y = screenHeight - axisYPos + 20;
-                if(flip % 3 == 1) {
-                    y += 15;
-                }
-                else if(flip % 3 == 2) {
+                if(x % 3 == 1) {
+
                     y += 30;
                 }
-                flip++;
+                else if(x % 3 == 2) {
+                    y += 15;
+                }
                 graphics.setColor(Color.black);
                 graphics.setFont(labelFont);
                 graphics.drawString(HR_MIN_SEC_FORMATTER.format(LocalDateTime.ofEpochSecond(secsToHits.get(0).getSecs()  + i, 0, ZoneOffset.UTC)), x - 10, y);
