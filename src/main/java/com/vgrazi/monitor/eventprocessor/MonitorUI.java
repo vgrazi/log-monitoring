@@ -18,7 +18,9 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 /**
- * Listens for new Scorecard files in the "output" directory, consumes them, renders them, and deletes them
+ * Listens for new Scorecard files in the "output" directory, consumes them, renders them, and deletes them.
+ * Note that the monitor is very dumb, all of the data is produced on the server app, and output to a Scorecard file
+ * The sole job of the monitor is to detect scorecards, read them, and render them
  */
 @Component
 public class MonitorUI implements CommandLineRunner {
