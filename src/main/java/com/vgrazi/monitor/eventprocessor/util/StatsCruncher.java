@@ -169,16 +169,12 @@ public class StatsCruncher {
                 state.setAverageHighActivity(avgHitCountForLastSeconds);
             }
             if (!state.isInHighActivity()) {
-                logger.debug("New high activity detected");
                 state.setInHighActivity(true);
                 state.setFirstTimeOfThresholdExceededSecs(now);
-            } else {
-                logger.debug("State is in high activity, more high activity detected");
             }
         } else // we are not currently in high activity. Check if we are coming out of a high activity state
             if (state.isInHighActivity()) {
                 long deltaCalm = now - state.getLastTimeOfThresholdExceededAlertSecs();
-                logger.debug("State is in high activity, low activity detected for {} seconds", deltaCalm);
                 if (deltaCalm >= secondsOfCalm) {
                     state.setInHighActivity(false);
                     String message = String.format("State was in high alert from %s to %s. Average %d messages/second at peak",
@@ -189,8 +185,6 @@ public class StatsCruncher {
                     state.addHistoryMessage(message);
                     state.setAlert(message);
                 }
-            } else {
-                logger.debug("Normal activity");
             }
     }
 }

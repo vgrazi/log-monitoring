@@ -126,7 +126,7 @@ public class MonitorBuilder {
         for (int i = 0; iterator.hasNext() && i < 10; i++) {
             yPos+= fontHeight;
             Map.Entry<String, Long> entry = iterator.next();
-            graphics.drawString(entry.getKey() + ":" + entry.getValue(), xMargin, yPos);
+            graphics.drawString(String.format("%s: %d", entry.getKey(), entry.getValue()), xMargin, yPos);
         }
     }
 
