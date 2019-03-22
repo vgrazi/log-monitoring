@@ -17,3 +17,5 @@ and alert state.
 ScorecardProcessor grabs new scorecards and writes them to the file system. Also cleans up old files
 
 Java UI Application watches for new Scorecard files, reads them, and renders them
+
+Note: To run this in diagnostic mode (timings are contracted, use application parameter --spring.profiles.active=dev)
