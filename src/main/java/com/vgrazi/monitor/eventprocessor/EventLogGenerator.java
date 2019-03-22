@@ -16,6 +16,13 @@ import java.util.concurrent.Executors;
 
 @Component
 public class EventLogGenerator implements CommandLineRunner {
+    @Value("${event-generator-ramp-up-seconds}")
+    private int RAMP_UP_SECONDS;
+    @Value("${event-generator-fast-up-seconds}")
+    private int FAST_SECONDS;
+    @Value("${event-generator-slow-seconds}")
+    private int SLOW_SECONDS;
+
     private final Logger logger = LoggerFactory.getLogger(EventLogGenerator.class);
     private volatile boolean running = true;
     private final DateTimeFormatter formatter =DateTimeFormatter.ofPattern("dd/MMM/yyyy:HH:mm:ss +SSSS");
@@ -64,13 +71,13 @@ public class EventLogGenerator implements CommandLineRunner {
             writer.flush();
             logger.debug("writing: {}{}{})", prefix, format, suffix);
             long currentTimeMS = System.currentTimeMillis();
-            long deltaTimeMS = (currentTimeMS - APP_START_TIME) % 1_000_000L;
-            if (deltaTimeMS < 1000*30) {
+            long deltaTimeMS = (currentTimeMS - APP_START_TIME) % ((RAMP_UP_SECONDS + FAST_SECONDS + SLOW_SECONDS)*1000);
+            if (deltaTimeMS < 1000* RAMP_UP_SECONDS) {
                 // slow start for 30 seconds
                 logger.debug("Slow. Delta:{}", deltaTimeMS);
                 Thread.sleep(300+random.nextInt(101));
             }
-            else if (deltaTimeMS < 1000*600) {
+            else if (deltaTimeMS < 1000* (RAMP_UP_SECONDS + FAST_SECONDS)) {
                 logger.debug("Fast. Delta:{}", deltaTimeMS);
                 // then high speed for 10 minutes
                 Thread.sleep(10+random.nextInt(101));

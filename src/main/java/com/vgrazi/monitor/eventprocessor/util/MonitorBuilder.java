@@ -70,7 +70,6 @@ public class MonitorBuilder {
                 int seconds = dateTime.get(ChronoField.SECOND_OF_DAY);
                 int deltaSeconds = seconds - startSeconds;
                 if(deltaSeconds % 3 == 1) {
-
                     y += 30;
                 }
                 else if(deltaSeconds % 3 == 0) {

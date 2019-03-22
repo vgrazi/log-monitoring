@@ -58,7 +58,6 @@ public class MonitorUI implements CommandLineRunner {
                 watchKey.pollEvents().forEach(event ->
                 {
                     Path path = (Path) event.context();
-                    System.out.printf(" Path: %s %d %s", path, event.count(), event.kind());
                     try {
                         Path scorecardFile = Paths.get(scorecardDir, path.getFileName().toString());
                         // give the file a chance to flush!

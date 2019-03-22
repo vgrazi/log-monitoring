@@ -8,7 +8,6 @@ import com.vgrazi.monitor.eventprocessor.util.WindowUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.util.Deque;
@@ -49,7 +48,6 @@ public class FrameProcessor {
      * @param scorecardQueue maintains a Window of frames. The Window is the span of time we are interested in, 10 minutes by default.
      */
     public void processFrames(BlockingQueue<Frame> frameQueue, BlockingQueue<Scorecard> scorecardQueue) {
-        state.setLastStatsReportTime(0);
         executor.submit(()-> {
             logger.info("FrameProcessor running");
             while (running) {
@@ -70,13 +68,17 @@ public class FrameProcessor {
         Scorecard scorecard = new Scorecard();
         scorecard.setStartTime(frames.getFirst().getStartTime());
         scorecard.setHitCounts(hitCounts);
-        statsCruncher.generateState(frames, scorecard, state);
+        statsCruncher.generateState(frames, state);
 
         scorecard.setHitsReport(state.getHitsReport());
         scorecard.setLastTimeOfThresholdExceededAlertSecs(state.getLastTimeOfThresholdExceededAlertSecs());
         scorecard.setFirstTimeOfThresholdExceededSecs(state.getFirstTimeOfThresholdExceededSecs());
         scorecard.setInHighActivity(state.isInHighActivity());
         scorecard.setHistory(state.getHistory());
+        String alert = state.getAlert();
+        if (alert != null) {
+            scorecard.setAlert(alert);
+        }
 
 //        Map<String, Long> failedResponses = statsCruncher.getSectionFailedResponses(frames);
 //        Map<String, Long> allHitCount = statsCruncher.getSectionHitCounts(frames);

@@ -15,6 +15,8 @@ public class State {
     private boolean inHighActivity;
     private long firstTimeOfThresholdExceededSecs;
     private long lastTimeOfThresholdExceededAlertSecs;
+    private String alert;
+    private int averageHighActivity;
 
     public void setLastStatsReportTime(long lastStatsReportTime) {
         this.lastStatsReportTime = lastStatsReportTime;
@@ -66,5 +68,21 @@ public class State {
 
     public Deque<String> getHistory() {
         return history;
+    }
+
+    public void setAlert(String alert) {
+        this.alert = alert;
+    }
+
+    public String getAlert() {
+        return alert;
+    }
+
+    public void setAverageHighActivity(int averageHighActivity) {
+        this.averageHighActivity = averageHighActivity;
+    }
+
+    public int getAverageHighActivity() {
+        return averageHighActivity;
     }
 }

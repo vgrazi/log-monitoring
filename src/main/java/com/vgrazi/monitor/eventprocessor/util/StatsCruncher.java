@@ -2,8 +2,9 @@ package com.vgrazi.monitor.eventprocessor.util;
 
 import com.vgrazi.monitor.eventprocessor.domain.Frame;
 import com.vgrazi.monitor.eventprocessor.domain.Record;
-import com.vgrazi.monitor.eventprocessor.domain.Scorecard;
 import com.vgrazi.monitor.eventprocessor.domain.State;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
@@ -17,7 +18,7 @@ import static java.util.stream.Collectors.toMap;
 
 @Service
 public class StatsCruncher {
-
+    private final Logger logger = LoggerFactory.getLogger(StatsCruncher.class);
     private final DateTimeFormatter FORMATTER = DateTimeFormatter.ISO_LOCAL_TIME;
     @Value("${report-stats-secs}")
     private int reportStatsTimeSecs;
@@ -26,8 +27,25 @@ public class StatsCruncher {
 // if average hit count > alert-threshold for 120 seconds, display alert
     private int secondsOfThrashing;
 
+    @Value("${seconds-of-calm}")
+// if average hit count < alert-threshold for 120 more seconds, cancel alert
+    private int secondsOfCalm;
+
     @Value("${alert-threshold}")
     private int alertThreshold;
+
+    /**
+     * This is the master facade, called by FrameProcessor to generate all of the current state base on the incoming frames
+     * and previous state
+     */
+    public void generateState(Deque<Frame> frames, State state) {
+        // generate hits report
+        saveHitsReportToState(frames, state, reportStatsTimeSecs);
+        // generate average hit counts for last 2 minutes
+        float avgHitCountForLastSeconds = getAverageHitCountForLastSeconds(frames, secondsOfThrashing);
+        logger.debug("Average hit count for last {} seconds:{}", secondsOfThrashing, avgHitCountForLastSeconds);
+        saveHitCountAlertsToState(frames, (int) avgHitCountForLastSeconds, state);
+    }
 
     /**
      * Sorts the map in reverse order of value
@@ -48,14 +66,19 @@ public class StatsCruncher {
         return hitCounts;
     }
 
-    private int getHitCountForLastSeconds(Deque<Frame> frames, int seconds) {
+    /**
+     * Calculates average hit counts for last 2 minutes
+     */
+    private float getAverageHitCountForLastSeconds(Deque<Frame> frames, int seconds) {
+        int frameCount = 0;
         int sum = 0;
         Iterator<Frame> iterator = frames.descendingIterator();
         for (int i = 0; iterator.hasNext() && i < seconds; i++) {
+            frameCount++;
             Frame frame = iterator.next();
             sum += frame.getHitCount();
         }
-        return sum;
+        return sum / (float) frameCount;
     }
 
     /**
@@ -119,53 +142,55 @@ public class StatsCruncher {
     /**
      * Iterates the Frames deque to produce a hits report for each second, and then saves that hits report to the state
      */
-    private long saveHitsReportToState(Deque<Frame> frames, State state, int reportStatsTimeSecs) {
+    private void saveHitsReportToState(Deque<Frame> frames, State state, int reportStatsTimeSecs) {
         long now = frames.getLast().getFrameEndTime();
-        if(state.getLastStatsReportTimeSecs() + reportStatsTimeSecs <= now) {
+        if (state.getLastStatsReportTimeSecs() + reportStatsTimeSecs <= now) {
             state.setLastStatsReportTimeSecs(now);
             Map<String, Long> hitsReport = generateHitsReport(frames, reportStatsTimeSecs);
             state.setHitsReport(hitsReport);
         }
-        return now;
-    }
-
-    private void saveHitCountAlertsToState(Scorecard scorecard, long now, int avgHitCountForLastSeconds, State state) {
-        if(avgHitCountForLastSeconds > alertThreshold) {
-            state.setLastTimeOfThresholdExceededAlertSecs(now);
-
-            if(!state.isInHighActivity()) {
-                state.setInHighActivity(true);
-                state.setFirstTimeOfThresholdExceededSecs(now);
-            }
-        }
-        else {
-            // we are not currently in high activity. Check if we are coming out of a high activity state
-            if(state.isInHighActivity()) {
-                if(now - state.getLastTimeOfThresholdExceededAlertSecs() > secondsOfThrashing) {
-                    state.setInHighActivity(false);
-                    String message = String.format("State was in high alert from %s to %s.",
-                            FORMATTER.format(LocalDateTime.ofEpochSecond(state.getFirstTimeOfThresholdExceededSecs(), 0, ZoneOffset.UTC)),
-                            FORMATTER.format(LocalDateTime.ofEpochSecond(state.getLastTimeOfThresholdExceededAlertSecs(), 0, ZoneOffset.UTC)));
-                    state.addHistoryMessage(message);
-                    scorecard.setAlert(message);
-                }
-            }
-        }
     }
 
     /**
-     * This is the master facade, called by FrameProcessor to generate all of the current state base on the incoming
+     * If avgHitCountForLastSeconds is greater than the alert threshold,
+     * sets the state to high activity
+     * Also sets now as the last time the threshold activity was exceeded.
+     * Otherwise, if the state is now in high activity for over the secondsOfThrashing time (2 minutes)
+     * sets high activity flag
      *
-     * frames
-     * @param frames
-     * @param scorecard
-     * @param state
+     * @param avgHitCountForLastSeconds this is the average hit count over the last "10" (by default) seconds
      */
-    public void generateState(Deque<Frame> frames, Scorecard scorecard, State state) {
-        // generate hits report
-        long now = saveHitsReportToState(frames, state, reportStatsTimeSecs);
-        // generate average hit counts for last 2 minutes
-        int avgHitCountForLastSeconds = getHitCountForLastSeconds(frames, secondsOfThrashing)/ frames.size();
-        saveHitCountAlertsToState(scorecard, now, avgHitCountForLastSeconds, state);
+    private void saveHitCountAlertsToState(Deque<Frame> frames, int avgHitCountForLastSeconds, State state) {
+        long now = frames.getLast().getFrameEndTime();
+        state.setAlert(null);
+        if (avgHitCountForLastSeconds > alertThreshold) {
+            state.setLastTimeOfThresholdExceededAlertSecs(now);
+            if(avgHitCountForLastSeconds > state.getAverageHighActivity()) {
+                state.setAverageHighActivity(avgHitCountForLastSeconds);
+            }
+            if (!state.isInHighActivity()) {
+                logger.debug("New high activity detected");
+                state.setInHighActivity(true);
+                state.setFirstTimeOfThresholdExceededSecs(now);
+            } else {
+                logger.debug("State is in high activity, more high activity detected");
+            }
+        } else // we are not currently in high activity. Check if we are coming out of a high activity state
+            if (state.isInHighActivity()) {
+                long deltaCalm = now - state.getLastTimeOfThresholdExceededAlertSecs();
+                logger.debug("State is in high activity, low activity detected for {} seconds", deltaCalm);
+                if (deltaCalm >= secondsOfCalm) {
+                    state.setInHighActivity(false);
+                    String message = String.format("State was in high alert from %s to %s. Average %d messages/second at peak",
+                            FORMATTER.format(LocalDateTime.ofEpochSecond(state.getFirstTimeOfThresholdExceededSecs(), 0, ZoneOffset.UTC)),
+                            FORMATTER.format(LocalDateTime.ofEpochSecond(state.getLastTimeOfThresholdExceededAlertSecs(), 0, ZoneOffset.UTC)),
+                            state.getAverageHighActivity()
+                    );
+                    state.addHistoryMessage(message);
+                    state.setAlert(message);
+                }
+            } else {
+                logger.debug("Normal activity");
+            }
     }
 }
